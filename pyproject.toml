@@ -1,0 +1,39 @@
+[project]
+name = "proyecto-1-esp-data"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Valentina", email = "valentinarestrepoarboleda@gmail.com" }
+]
+requires-python = ">=3.15"
+dependencies = [
+    "fastapi>=0.162.0",
+    "lightgbm>=4.7.0",
+    "numpy>=2.5.4",
+    "pandas>=3.1.0",
+    "pydataxm>=0.3.17",
+    "pytest>=9.2.0",
+    "requests>=2.34.2",
+    "scikit-learn>=1.9.1",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+proyecto-1-esp-data = "proyecto_1_esp_data:main"
+
+[build-system]
+requires = ["uv_build>=0.13.4,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/taller"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

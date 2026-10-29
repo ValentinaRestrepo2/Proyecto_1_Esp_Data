@@ -1,0 +1,7 @@
+data/
+models/*.pkl
+models/*.joblib
+.venv/
+__pycache__/
+.pytest_cache/
+.env
