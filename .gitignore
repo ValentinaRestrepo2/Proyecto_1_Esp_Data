@@ -1,7 +1,33 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Python / Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.ipynb_checkpoints/
+
+# Datos crudos y procesados (los datos no se suben a git)
 data/
+*.csv
+*.parquet
+*.json
+*.xlsx
+
+# Modelos entrenados y artefactos pesados
 models/*.pkl
 models/*.joblib
-.venv/
-__pycache__/
+models/*.onnx
+models/*.pt
+models/*.h5
+
+# Pruebas y cobertura
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Variables de entorno y secretos
 .env
+*.local
