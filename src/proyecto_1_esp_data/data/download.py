@@ -24,7 +24,7 @@ import requests
 
 URL = "https://archive.ics.uci.edu/static/public/501/beijing+multi+site+air+quality+data.zip"
 FICHA = "https://archive.ics.uci.edu/dataset/501"
-LICENCIA = "CC BY 4.0 (confirmar en la ficha de UCI)"
+LICENCIA = "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/legalcode)"
 ESTACIONES_ESPERADAS = 12
 FILAS_ESPERADAS = 420_768  # 12 estaciones x 35.064 horas
 ARCHIVO_CSV = "calidad_aire_beijing.csv"
