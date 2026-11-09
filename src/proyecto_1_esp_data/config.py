@@ -84,3 +84,17 @@ DRIFT_UMBRAL_COLUMNA = 0.1
 # así que el drift es una ALERTA que se revisa, nunca un reentrenamiento automático
 # (ver docs/politica-de-reentrenamiento.md).
 DRIFT_UMBRAL_COMPARTIDO = 0.5
+
+# --- Pipeline (Prefect) -----------------------------------------------------------
+CACHE_PREFECT = Path(".prefect_cache")  # resultados cacheados; no se versiona
+# Reintentos de la descarga (única tarea de I/O de red). Solo se reintentan errores de
+# red; un hash o volumen distintos NO se reintentan, porque reintentar no los arregla.
+DESCARGA_REINTENTOS = 3
+# Espera de 10 s, 20 s, 40 s...: el backoff exponencial da tiempo a que el servidor
+# de UCI se recupere en vez de insistir cada segundo, que es lo que lo mantiene caído.
+DESCARGA_BACKOFF_SEGUNDOS = 10
+# Una ejecución cada trimestre (1 de enero, abril, julio y octubre, 6:00): coincide con
+# la frecuencia de la política de reentrenamiento. NO reentrena el modelo completo cada
+# pocos minutos ni promueve nada: genera un candidato y el reporte de drift para revisar.
+PIPELINE_CRON = "0 6 1 1,4,7,10 *"
+PIPELINE_ZONA_HORARIA = "America/Bogota"

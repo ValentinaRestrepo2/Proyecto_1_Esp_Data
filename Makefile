@@ -25,3 +25,14 @@ format:
 check: lint test
 
 .PHONY: setup smoke data drift drift-check test lint format check
+
+pipeline:
+	uv run python -m proyecto_1_esp_data.pipeline.flow
+
+pipeline-cache:
+	uv run python -m proyecto_1_esp_data.pipeline.flow --medir-cache
+
+serve:
+	uv run python -m proyecto_1_esp_data.pipeline.flow --servir
+
+.PHONY: pipeline pipeline-cache serve

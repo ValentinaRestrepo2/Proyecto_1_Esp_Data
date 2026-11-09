@@ -37,3 +37,4 @@ htmlcov/
 # Variables de entorno y secretos
 .env
 *.local
+.prefect_cache/
