@@ -1,0 +1,52 @@
+{
+  "drift_detectado": true,
+  "columnas_evaluadas": 17,
+  "columnas_con_drift": [
+    "CO",
+    "PM10",
+    "RAIN",
+    "SO2",
+    "WSPM",
+    "pm25",
+    "pm25_lag1",
+    "pm25_lag2",
+    "wd"
+  ],
+  "proporcion_con_drift": 0.529,
+  "umbral_columna": 0.1,
+  "umbral_compartido": 0.5,
+  "distancias": {
+    "CO": 0.1152,
+    "DEWP": 0.0952,
+    "NO2": 0.0689,
+    "O3": 0.0398,
+    "PM10": 0.1179,
+    "PRES": 0.0406,
+    "RAIN": 0.1047,
+    "SO2": 0.2209,
+    "TEMP": 0.0621,
+    "WSPM": 0.1114,
+    "estacion_ano": 0.0031,
+    "pm25": 0.1031,
+    "pm25_lag1": 0.1094,
+    "pm25_lag2": 0.1147,
+    "station": 0.0061,
+    "target": 0.0247,
+    "wd": 0.1252
+  },
+  "referencia": {
+    "inicio": "2015-01-01",
+    "fin": "2015-12-31",
+    "filas": 4338,
+    "porcentaje_dias_sobre_umbral": 39.3,
+    "linea_base_sensibilidad": 0.637
+  },
+  "actual": {
+    "inicio": "2016-01-01",
+    "fin": "2016-12-31",
+    "filas": 4337,
+    "porcentaje_dias_sobre_umbral": 36.0,
+    "linea_base_sensibilidad": 0.585
+  },
+  "accion": "ALERTA: revisar con una persona (ver docs/politica-de-reentrenamiento.md); no reentrenar ni promover modelos automáticamente."
+}
