@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Valentina", email = "valentinarestrepoarboleda@gmail.com" }
 ]
-requires-python = ">=3.15"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.162.0",
     "lightgbm>=4.7.0",
