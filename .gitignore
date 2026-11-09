@@ -10,11 +10,15 @@ __pycache__/
 *.ipynb_checkpoints/
 
 # Datos crudos y procesados (los datos no se suben a git)
-data/
+/data/*
 *.csv
 *.parquet
 *.json
 *.xlsx
+# Excepción: metadata.json (con el hash del ZIP) SÍ se versiona
+!/data/raw/
+/data/raw/*
+!/data/raw/metadata.json
 
 # Modelos entrenados y artefactos pesados
 models/*.pkl
