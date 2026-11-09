@@ -1,0 +1,116 @@
+{
+  "candidato": "baseline_persistencia",
+  "parametros": {
+    "regla": "manana = hoy",
+    "umbral_pm25": 75.0
+  },
+  "semilla": 42,
+  "huella_datos_sha256": "e63a369c2ac0a5667225b0c8b3d92cd367c04a295790a0f496ae0c32b2ece1b7",
+  "metricas": {
+    "candidato": "baseline_persistencia",
+    "modelo": {
+      "val": {
+        "n": 4301,
+        "sensibilidad": 0.6414201183431952,
+        "precision": 0.6433234421364985,
+        "f1": 0.6423703703703704
+      },
+      "produccion": {
+        "n": 4990,
+        "sensibilidad": 0.5910333515582286,
+        "precision": 0.5878194671016856,
+        "f1": 0.589422028353326
+      }
+    },
+    "linea_base": {
+      "val": {
+        "n": 4301,
+        "sensibilidad": 0.6414201183431952,
+        "precision": 0.6433234421364985,
+        "f1": 0.6423703703703704
+      },
+      "produccion": {
+        "n": 4990,
+        "sensibilidad": 0.5910333515582286,
+        "precision": 0.5878194671016856,
+        "f1": 0.589422028353326
+      }
+    },
+    "por_estacion_validacion": {
+      "Aotizhongxin": {
+        "n": 355.0,
+        "sensibilidad": 0.662,
+        "precision": 0.662,
+        "f1": 0.662
+      },
+      "Changping": {
+        "n": 350.0,
+        "sensibilidad": 0.595,
+        "precision": 0.595,
+        "f1": 0.595
+      },
+      "Dingling": {
+        "n": 361.0,
+        "sensibilidad": 0.573,
+        "precision": 0.578,
+        "f1": 0.575
+      },
+      "Dongsi": {
+        "n": 361.0,
+        "sensibilidad": 0.66,
+        "precision": 0.664,
+        "f1": 0.662
+      },
+      "Guanyuan": {
+        "n": 362.0,
+        "sensibilidad": 0.66,
+        "precision": 0.66,
+        "f1": 0.66
+      },
+      "Gucheng": {
+        "n": 357.0,
+        "sensibilidad": 0.622,
+        "precision": 0.626,
+        "f1": 0.624
+      },
+      "Huairou": {
+        "n": 362.0,
+        "sensibilidad": 0.651,
+        "precision": 0.651,
+        "f1": 0.651
+      },
+      "Nongzhanguan": {
+        "n": 351.0,
+        "sensibilidad": 0.644,
+        "precision": 0.644,
+        "f1": 0.644
+      },
+      "Shunyi": {
+        "n": 364.0,
+        "sensibilidad": 0.636,
+        "precision": 0.636,
+        "f1": 0.636
+      },
+      "Tiantan": {
+        "n": 362.0,
+        "sensibilidad": 0.653,
+        "precision": 0.653,
+        "f1": 0.653
+      },
+      "Wanliu": {
+        "n": 357.0,
+        "sensibilidad": 0.671,
+        "precision": 0.676,
+        "f1": 0.674
+      },
+      "Wanshouxigong": {
+        "n": 359.0,
+        "sensibilidad": 0.645,
+        "precision": 0.65,
+        "f1": 0.648
+      }
+    }
+  },
+  "promovido": false,
+  "nota": "El pipeline no promueve modelos; ver docs/politica-de-reentrenamiento.md"
+}

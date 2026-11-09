@@ -15,7 +15,7 @@ El proyecto predice si mañana el PM2.5 de una estación de Beijing superará 75
 | Datos | **pandas 2.x** (`<3`, ver ADR 001) | En uso |
 | Modelo | **scikit-learn** para la línea base y el preprocesamiento, **LightGBM** para el modelo candidato | LightGBM pendiente de entrenar |
 | Tracking y registro | **MLflow**, con alias (`@champion`) y no con `stages` | Pendiente |
-| Orquestación | **Prefect** | Pendiente |
+| Orquestación | **Prefect 3** (ver [ADR 002](002-prefect.md)) | En uso |
 | Servicio | **FastAPI** + **Docker** | Pendiente |
 | Monitoreo de drift | **Evidently 0.7** | En uso |
 | Calidad | **ruff**, **pytest**, **pre-commit** (ruff, nbstripout, gitleaks) y CI en GitHub Actions | En uso |

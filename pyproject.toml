@@ -9,10 +9,11 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "evidently>=0.7.23",
-    "fastapi>=0.162.0",
+    "fastapi>=0.139,<0.151",
     "lightgbm>=4.7.0",
     "numpy>=2.5.4",
     "pandas>=2.2,<3",  # Evidently 0.7.x no importa con pandas 3
+    "prefect>=3.9",
     "pytest>=9.2.0",
     "requests>=2.34.2",
     "scikit-learn>=1.9.1",
