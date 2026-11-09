@@ -12,7 +12,6 @@ dependencies = [
     "lightgbm>=4.7.0",
     "numpy>=2.5.4",
     "pandas>=3.1.0",
-    "pydataxm>=0.3.17",
     "pytest>=9.2.0",
     "requests>=2.34.2",
     "scikit-learn>=1.9.1",
@@ -32,8 +31,7 @@ dev = [
     "ruff>=0.17.3",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/taller"]
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
