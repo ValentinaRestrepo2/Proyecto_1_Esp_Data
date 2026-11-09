@@ -57,7 +57,7 @@ UCI marca los faltantes como `NA`. En total el nivel de nulos es bajo (máximo 4
 
 ### Estrategia
 
-1. **Día válido:** el target se calcula con el promedio diario de PM2.5 por estación. Un día con **menos de 18 horas válidas** no se usa (`HORAS_VALIDAS_MIN_POR_DIA` en `config.py`). Quedan 17.294 de 17.532 días estación (98,6 %).
+1. **Día válido:** el target se calcula con el promedio diario de PM2.5 por estación. Un día con **menos de 18 horas válidas** no se usa (`HORAS_VALIDAS_MIN_POR_DIA` en `config.py`). Son válidos 17.294 de 17.532 días estación (98,6 %); tras exigir que el día siguiente también sea válido para tener target, quedan 17.282 filas, de las cuales 17.259 caen dentro de alguna partición.
 2. **Relleno acotado:** se rellena hacia adelante (*forward fill*) solo huecos de **máximo 3 horas seguidas** (`RELLENO_MAX_HORAS`). Los huecos más largos quedan como nulos y el día se descarta si no llega a 18 horas.
 3. **Imputación de variables predictoras:** cualquier imputador o escalador se ajusta **solo con train** y se aplica a validación y producción.
 4. **No se eliminan filas con nulos** en el dataset crudo; la decisión se toma después, sobre la tabla diaria.
@@ -76,11 +76,15 @@ UCI marca los faltantes como `NA`. En total el nivel de nulos es bajo (máximo 4
 - **Métrica principal:** sensibilidad (detectar los días malos), con precisión mínima, F1 y PR-AUC como apoyo.
 - **Split temporal con fechas fijas** (`config.py`), nunca aleatorio:
 
-| Partición | Periodo | Días estación | % de días sobre el umbral |
-|---|---|---|---|
-| Train | 2013-03-01 a 2014-12-31 | 7.914 | 43,6 % |
-| Validación | 2015-01-01 a 2015-12-31 | 4.337 | 39,1 % |
-| Producción (simulada) | 2016-01-01 a 2017-02-28 | 5.043 | 36,7 % |
+| Partición | Periodo | Filas (día-estación) | % de días sobre el umbral | Línea base: sensibilidad |
+|---|---|---|---|---|
+| Train | 2013-03-01 a 2014-12-31 | 7.902 | 43,6 % | 0,63 |
+| Validación | 2015-01-01 a 2015-12-31 | 4.326 | 39,2 % | 0,64 |
+| Producción (simulada) | 2016-01-01 a 2017-02-28 | 5.031 | 36,6 % | 0,59 |
+
+Una fila entra a una partición solo si su día **y** el día del target caen dentro de ella; por eso se pierde el último día de cada partición (23 filas en total). Así ningún target de train mira datos de validación.
+
+La sensibilidad de la línea base "mañana = hoy" es el número a superar: en validación detecta 64 de cada 100 días malos, y en producción baja a 59.
 
 - **Variables derivadas:** estación, dirección del viento, estación del año (derivada del mes; se declara aquí por ser una variable construida), promedios diarios y rezagos de contaminantes y meteorología.
 - **Evaluación por subgrupos:** se reportan métricas por estación, no solo el total.
@@ -88,7 +92,7 @@ UCI marca los faltantes como `NA`. En total el nivel de nulos es bajo (máximo 4
 ## 6. Limitaciones
 
 - **Una sola ciudad y cuatro años.** Un modelo entrenado aquí no se generaliza a otras ciudades ni a épocas con otras políticas ambientales.
-- **Desbalance que cambia en el tiempo.** El porcentaje de días sobre el umbral baja de 43,6 % (train) a 36,7 % (producción). Es un cambio real de la distribución del target y se vigilará en el monitoreo.
+- **Desbalance que cambia en el tiempo.** El porcentaje de días sobre el umbral baja de 43,6 % (train) a 36,6 % (producción). Es un cambio real de la distribución del target y se vigilará en el monitoreo.
 - **Estaciones muy correlacionadas.** Las 12 estaciones están en la misma ciudad y el mismo día suele ser malo en casi todas. No son 12 muestras independientes; las métricas globales son optimistas frente a un caso con ciudades nuevas.
 - **Las estaciones difieren.** El porcentaje de días sobre el umbral va de 31,7 % (Dingling) a 43,5 % (Dongsi). Por eso se evalúa por estación.
 - **Estacionalidad fuerte.** Hay más contaminación en invierno (calefacción). Comparar ventanas de 12 meses completos evita confundir estación con drift.
@@ -98,7 +102,7 @@ UCI marca los faltantes como `NA`. En total el nivel de nulos es bajo (máximo 4
 ## 7. Riesgos de fuga de datos (*leakage*)
 
 1. **Fuga temporal.** Un split aleatorio pone días del futuro en train y días del pasado en test, y el modelo "ve" el clima del periodo que debe predecir. Se evita con el split por fechas fijas y sin mezclar filas (`shuffle=False`). También hay que evitar variables construidas con información de mañana (ventanas centradas, rellenos hacia atrás).
-2. **Fuga por preprocesamiento.** Calcular medias, escalas o imputaciones con todo el dataset filtra información de validación y producción. Todo imputador y escalador se ajusta con train únicamente. El *forward fill* se aplica por estación y no cruza las fronteras entre particiones.
+2. **Fuga por preprocesamiento.** Calcular medias, escalas o imputaciones con todo el dataset filtra información de validación y producción. Todo imputador y escalador se ajusta con train únicamente. El *forward fill* se aplica por estación y solo usa valores pasados.
 3. **Fuga por el mismo día en otra estación.** Si un mismo día aparece en varias estaciones y se reparte entre particiones, el modelo ve el clima de ese día en train. Por eso el corte es por **fecha** para todas las estaciones a la vez, no por estación ni por fila.
 
 ## 8. Mantenimiento
