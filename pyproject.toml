@@ -27,6 +27,8 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.4.0",
+    "matplotlib>=3.11.2",
     "pytest>=9.2.0",
     "ruff>=0.17.3",
 ]
