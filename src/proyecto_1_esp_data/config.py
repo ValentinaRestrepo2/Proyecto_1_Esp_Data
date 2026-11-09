@@ -66,3 +66,21 @@ MAX_FRACCION_NULOS = 0.10  # por columna, sobre el dataset completo
 # PM10 incluye a PM2.5, así que PM10 >= PM2.5. En los datos reales ~5 % de las
 # filas lo incumplen por ruido del sensor: se tolera hasta este porcentaje.
 MAX_FRACCION_PM10_MENOR_PM25 = 0.10
+
+# --- Monitoreo de drift (Evidently) -----------------------------------------------
+REPORTES = Path("reports")
+DRIFT_COLUMNAS_NUM = [
+    "pm25", "PM10", "SO2", "NO2", "CO", "O3",
+    "TEMP", "PRES", "DEWP", "RAIN", "WSPM", "pm25_lag1", "pm25_lag2",
+]  # fmt: skip
+DRIFT_COLUMNAS_CAT = ["wd", "station", "estacion_ano", "target"]
+# Una columna tiene drift si su distancia entre ventanas supera este valor
+# (Wasserstein normalizada en numéricas, Jensen-Shannon en categóricas).
+# 0.1 es el valor por defecto de Evidently; se conserva porque las ventanas de
+# 12 meses ya neutralizan la estacionalidad.
+DRIFT_UMBRAL_COLUMNA = 0.1
+# Se declara drift del dataset si al menos esta proporción de columnas lo tiene.
+# Medido en los datos: entre años consecutivos la proporción varía de 0,18 a 0,65,
+# así que el drift es una ALERTA que se revisa, nunca un reentrenamiento automático
+# (ver docs/politica-de-reentrenamiento.md).
+DRIFT_UMBRAL_COMPARTIDO = 0.5

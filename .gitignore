@@ -19,6 +19,8 @@ __pycache__/
 !/data/raw/
 /data/raw/*
 !/data/raw/metadata.json
+# Excepción: el resumen de drift (JSON pequeño) SÍ se versiona
+!/reports/*.json
 
 # Modelos entrenados y artefactos pesados
 models/*.pkl
