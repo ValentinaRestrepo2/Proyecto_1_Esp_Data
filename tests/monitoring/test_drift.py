@@ -9,7 +9,7 @@ import pytest
 from proyecto_1_esp_data import config
 from proyecto_1_esp_data.monitoring import drift
 
-N = 600
+N = 365  # un año, para que cada tabla quepa en su ventana de 12 meses
 
 
 def _tabla(
@@ -93,3 +93,39 @@ def test_ventana_vacia_se_rechaza(tmp_path):
     solo_ref = _tabla(config.DRIFT_REFERENCIA[0]).head(100)  # no llega a 2016
     with pytest.raises(ValueError):
         drift.generar_reporte(solo_ref, salida=tmp_path)
+
+
+def _tabla_ventanas(escala_actual: float) -> pd.DataFrame:
+    ref = _tabla(config.DRIFT_REFERENCIA[0], semilla=1)
+    act = _tabla(config.DRIFT_ACTUAL[0], escala=escala_actual, semilla=2)
+    return pd.concat([ref, act], ignore_index=True)
+
+
+def test_check_sale_con_codigo_1_si_hay_drift(capsys):
+    codigo = drift.main(["--check"], tabla=_tabla_ventanas(escala_actual=3.0))
+    assert codigo == 1
+    assert "Drift detectado: True" in capsys.readouterr().out
+
+
+def test_check_sale_con_codigo_0_si_no_hay_drift():
+    assert drift.main(["--check"], tabla=_tabla_ventanas(escala_actual=1.0)) == 0
+
+
+def test_check_no_escribe_archivos(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    drift.main(["--check"], tabla=_tabla_ventanas(escala_actual=3.0))
+    assert not (tmp_path / "reports").exists()
+
+
+def test_check_acepta_ventanas_propias():
+    # Mismos datos, pero comparando la ventana de referencia consigo misma: sin drift
+    tabla = _tabla_ventanas(escala_actual=3.0)
+    args = ["--check", "--actual", *config.DRIFT_REFERENCIA]
+    assert drift.main(args, tabla=tabla) == 0
+
+
+def test_sin_check_no_acepta_ventanas_propias():
+    with pytest.raises(SystemExit):
+        drift.main(
+            ["--referencia", "2015-01-01", "2015-12-31"], tabla=_tabla_ventanas(1.0)
+        )

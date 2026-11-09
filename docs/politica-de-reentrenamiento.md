@@ -24,9 +24,11 @@ Reporte generado con `uv run python -m proyecto_1_esp_data.monitoring.drift` (`r
 - La línea base "mañana = hoy" baja de 0,637 a 0,585 de sensibilidad.
 - **Calibración del umbral:** entre años consecutivos de 12 meses la proporción de columnas con drift varió de **0,18 a 0,65** (0,18 / 0,65 / 0,18 entre marzo-febrero de 2013-14, 2014-15, 2015-16 y 2016-17). El drift natural entre años ya es grande y la alerta a 0,5 está cerca del ruido.
 
+**Por qué no se usa un p-valor:** con miles de filas por ventana, una prueba como K-S da `p < 0,05` ante diferencias minúsculas y sin importancia práctica; casi cualquier par de años saldría con drift. Por eso el umbral se pone sobre el **tamaño del efecto** (distancia de Wasserstein normalizada, en unidades de desviación estándar de la referencia, y distancia de Jensen-Shannon), que no crece con el número de filas. Los métodos están fijos en `monitoring/drift.py`: Evidently cambia solo a K-S con p-valor cuando hay menos de 1.000 filas, y eso haría que el umbral significara otra cosa según el tamaño de la muestra.
+
 **Consecuencia de diseño:** el drift de datos es una alerta para investigar, no una razón suficiente para reentrenar. Un contaminante que baja (SO2, CO) puede reflejar una mejora real del aire, no un problema del modelo. Lo que decide es el **rendimiento**.
 
-## 3. Cuándo se reentrena
+## 3. Cuándo se reentrena (los `trigger`)
 
 Se abre una revisión cuando ocurre **cualquiera** de estas condiciones:
 
@@ -45,7 +47,13 @@ Si solo hay drift y el rendimiento se mantiene, se documenta y se sigue vigiland
 4. **La promoción es manual:** una persona del equipo mueve el alias `@champion` en el registro de modelos después de revisar la comparación. Ningún flujo automático promueve modelos.
 5. Se conserva el modelo anterior para poder **volver atrás** moviendo el alias de nuevo.
 
-## 5. Responsables
+## 5. Aprobación, `rollback` y registro
+
+- **Aprobador:** una persona del equipo distinta de quien entrenó el candidato revisa la comparación y mueve el alias.
+- **`Rollback`:** volver al modelo anterior moviendo de nuevo el alias `@champion` a la versión previa, que siempre se conserva. No requiere reentrenar.
+- **Qué queda registrado en cada decisión:** el motivo del `trigger` (qué señal saltó y con qué valor), las ventanas de datos usadas, el hash de `data/raw/metadata.json`, las métricas del candidato y del vigente, quién aprobó y la fecha. El resumen `reports/drift_resumen.json` se guarda junto a la corrida.
+
+## 6. Responsables
 
 | Rol | Responsabilidad |
 |---|---|
@@ -53,7 +61,7 @@ Si solo hay drift y el rendimiento se mantiene, se documenta y se sigue vigiland
 | Modelo / pipeline | Entrenar candidatos y mostrar la comparación |
 | Revisión (al menos una persona distinta de quien entrenó) | Aprobar la promoción |
 
-## 6. Límites conocidos
+## 7. Límites conocidos
 
 - Los umbrales de rendimiento (5 y 2 puntos) son valores iniciales; se confirman cuando exista el modelo y su validación.
 - El umbral de drift usa el valor por defecto de Evidently; con solo 4 años de datos no hay base para calibrarlo mejor. Se revisará cuando haya más ventanas.
