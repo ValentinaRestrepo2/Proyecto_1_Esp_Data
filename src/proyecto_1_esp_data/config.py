@@ -98,3 +98,14 @@ DESCARGA_BACKOFF_SEGUNDOS = 10
 # pocos minutos ni promueve nada: genera un candidato y el reporte de drift para revisar.
 PIPELINE_CRON = "0 6 1 1,4,7,10 *"
 PIPELINE_ZONA_HORARIA = "America/Bogota"
+
+# Modelo y decisión
+MODELO_PATH = Path("models") / "clasificador_pm25.joblib"
+UMBRAL_DECISION = 0.5
+
+# Catálogos para las apps
+ESTACIONES = [
+    "Aotizhongxin", "Changping", "Dingling", "Dongsi", "Guanyuan", "Gucheng",
+    "Huairou", "Nongzhanguan", "Shunyi", "Tiantan", "Wanliu", "Wanshouxigong",
+]  # fmt: skip
+ESTACIONES_DEL_ANO = ["invierno", "primavera", "verano", "otono"]
