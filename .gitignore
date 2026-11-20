@@ -12,6 +12,7 @@ __pycache__/
 # Datos crudos y procesados (los datos no se suben a git)
 /data/*
 *.csv
+!tests/fixtures/*.csv
 *.parquet
 *.json
 *.xlsx
