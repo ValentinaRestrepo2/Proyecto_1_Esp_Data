@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
+
 from proyecto_1_esp_data import config
 from proyecto_1_esp_data.predict import predecir
 

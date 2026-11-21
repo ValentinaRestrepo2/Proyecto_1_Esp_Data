@@ -1,4 +1,5 @@
 import streamlit as st
+
 from proyecto_1_esp_data import config
 from proyecto_1_esp_data.predict import predecir
 
@@ -117,37 +118,36 @@ st.markdown(
 izquierda, derecha = st.columns([2, 1], gap="large")
 datos: dict = {}
 
-with izquierda:
-    with st.form("entrada"):
-        titulo("🧪 Contaminantes de hoy")
-        for claves in (["pm25", "PM10", "SO2"], ["NO2", "CO", "O3"]):
-            for col, clave in zip(st.columns(3), claves):
-                datos[clave] = campo(col, clave)
+with izquierda, st.form("entrada"):
+    titulo("🧪 Contaminantes de hoy")
+    for claves in (["pm25", "PM10", "SO2"], ["NO2", "CO", "O3"]):
+        for col, clave in zip(st.columns(3), claves):
+            datos[clave] = campo(col, clave)
 
-        titulo("🌬️ Meteorología de hoy")
-        for claves in (["TEMP", "PRES", "DEWP"], ["RAIN", "WSPM"]):
-            for col, clave in zip(st.columns(3), claves):
-                datos[clave] = campo(col, clave)
+    titulo("🌬️ Meteorología de hoy")
+    for claves in (["TEMP", "PRES", "DEWP"], ["RAIN", "WSPM"]):
+        for col, clave in zip(st.columns(3), claves):
+            datos[clave] = campo(col, clave)
 
-        titulo("📅 Historial reciente")
-        cols = st.columns(3)
-        datos["pm25_lag1"] = campo(cols[0], "pm25_lag1")
-        datos["pm25_lag2"] = campo(cols[1], "pm25_lag2")
+    titulo("📅 Historial reciente")
+    cols = st.columns(3)
+    datos["pm25_lag1"] = campo(cols[0], "pm25_lag1")
+    datos["pm25_lag2"] = campo(cols[1], "pm25_lag2")
 
-        titulo("📍 Contexto")
-        cols = st.columns(3)
-        datos["station"] = cols[0].selectbox("Estación", config.ESTACIONES, key="station")
-        datos["wd"] = cols[1].selectbox(
-            "Dirección del viento", config.DIRECCIONES_VIENTO, key="wd"
-        )
-        datos["estacion_ano"] = cols[2].selectbox(
-            "Estación del año",
-            config.ESTACIONES_DEL_ANO,
-            format_func=NOMBRES_ESTACION_ANO.get,
-            key="estacion_ano",
-        )
+    titulo("📍 Contexto")
+    cols = st.columns(3)
+    datos["station"] = cols[0].selectbox("Estación", config.ESTACIONES, key="station")
+    datos["wd"] = cols[1].selectbox(
+        "Dirección del viento", config.DIRECCIONES_VIENTO, key="wd"
+    )
+    datos["estacion_ano"] = cols[2].selectbox(
+        "Estación del año",
+        config.ESTACIONES_DEL_ANO,
+        format_func=NOMBRES_ESTACION_ANO.get,
+        key="estacion_ano",
+    )
 
-        enviado = st.form_submit_button("Predecir calidad del aire de mañana")
+    enviado = st.form_submit_button("Predecir calidad del aire de mañana")
 
 with derecha:
     titulo("📊 Resultado")
