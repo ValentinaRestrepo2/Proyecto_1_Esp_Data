@@ -24,10 +24,31 @@ Modelo: LightGBM (300 árboles, `class_weight="balanced"`, semilla 42) con las 1
 | Producción simulada (2016-01 a 2017-02) | Línea base | 0,591 | 0,588 | 0,589 | 4.990 |
 | Producción simulada (2016-01 a 2017-02) | **LightGBM** | **0,647** | **0,611** | **0,628** | 5.031 |
 
-El modelo supera a la línea base en las tres métricas y en las dos particiones: en validación detecta 74 de cada 100 días malos, frente a 64.
+El modelo supera a la línea base en las tres métricas y en las dos particiones: en validación detecta 74 de cada 100 días malos, frente a 64. El pipeline (`--modelo lightgbm`) obtiene exactamente las mismas métricas que `make train`.
+
+### Sensibilidad por estación (validación 2015)
+
+Salen de `reports/candidato.json` (pipeline con `--modelo lightgbm`); los de la línea base, de su corrida anterior. Cada estación tiene unos 360 días evaluados.
+
+| Estación | Línea base | LightGBM | Diferencia (puntos) |
+|---|---|---|---|
+| Wanliu | 0,671 | **0,836** | +16,5 |
+| Guanyuan | 0,660 | **0,796** | +13,6 |
+| Aotizhongxin | 0,662 | **0,797** | +13,5 |
+| Nongzhanguan | 0,644 | **0,773** | +12,9 |
+| Shunyi | 0,636 | **0,755** | +11,9 |
+| Dingling | 0,573 | **0,691** | +11,8 |
+| Wanshouxigong | 0,645 | **0,761** | +11,6 |
+| Dongsi | 0,660 | **0,765** | +10,5 |
+| Gucheng | 0,622 | **0,725** | +10,3 |
+| Tiantan | 0,653 | **0,755** | +10,2 |
+| Changping | 0,595 | 0,598 | +0,3 |
+| Huairou | **0,651** | 0,562 | −8,9 |
 
 ### Limitaciones
 
+- **No mejora en todas las estaciones.** En **Huairou** el modelo detecta 56 de cada 100 días malos, frente a 65 de la línea base (−8,9 puntos), aunque su precisión es mayor (0,709). En **Changping** empata con la línea base (0,598 frente a 0,595). Las dos son estaciones de las afueras, al norte de la ciudad; la causa no se ha investigado. El promedio general (0,739) oculta estas diferencias, por eso se reportan por estación.
+- **Las métricas por estación tienen bastante incertidumbre.** Con unos 360 días por estación (de ellos, alrededor de 130 a 150 días malos), cada sensibilidad tiene un margen de error aproximado de ±8 puntos. Las mejoras de más de 10 puntos superan ese margen; la caída de Huairou está cerca de él, así que conviene confirmarla con más datos.
 - **Pierde rendimiento con el tiempo.** La sensibilidad baja de 0,74 en validación a 0,65 en producción. Coincide con el cambio en los datos: los días malos bajan de 39,2 % a 36,6 % y el reporte de drift marca 9 de 17 columnas entre 2015 y 2016. Ver [`docs/politica-de-reentrenamiento.md`](docs/politica-de-reentrenamiento.md).
 - **La comparación no usa exactamente las mismas filas.** La línea base no puede predecir cuando falta el PM2.5 de hoy; el modelo sí, porque imputa. Son menos del 1 % de las filas.
 - **La mejora es moderada.** Buena parte de la señal ya está en el PM2.5 de hoy.
@@ -96,7 +117,7 @@ src/proyecto_1_esp_data/
   data/contract.py     contrato de datos (rangos, relaciones, volumen)
   data/prepare.py      tabla diaria, target, split temporal y línea base
   pipeline/flow.py     pipeline de Prefect (reintentos, caché, schedule)
-  pipeline/entrenadores.py  un entrenador por modelo; aquí se agrega LightGBM
+  pipeline/entrenadores.py  un entrenador por modelo: línea base y LightGBM
   monitoring/drift.py  reporte de drift con Evidently
 tests/                 pruebas (datos, monitoreo, notebooks, smoke)
 notebooks/01_eda.ipynb análisis exploratorio (sin salidas)
@@ -114,7 +135,7 @@ reports/               reporte de drift (HTML) y su resumen (JSON)
 - **Artifacts:** tabla de métricas (modelo y línea base, en validación y producción) y resumen de drift, visibles en la interfaz de Prefect.
 - **Schedule:** `make serve` deja el flujo corriendo con el deployment `calidad-aire-trimestral` (cron `0 6 1 1,4,7,10 *`, zona `America/Bogota`): una vez por trimestre, igual que la política de reentrenamiento.
 - **No promueve.** Registra `reports/candidato.json` con `promovido: false`. Reemplazar el modelo vigente (`models/clasificador_pm25.joblib`) es decisión de una persona. No hay registro de modelos ni alias `@champion`: el modelo se guarda con joblib (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md)).
-- El modelo se elige con `--modelo`. Hoy solo existe `baseline` ("mañana = hoy"); para agregar LightGBM basta una función en `pipeline/entrenadores.py`.
+- El modelo se elige con `--modelo`: `baseline` ("mañana = hoy", el valor por defecto) o `lightgbm`. Para registrar el modelo real: `uv run python -m proyecto_1_esp_data.pipeline.flow --modelo lightgbm`. Otro modelo se agrega con una función en `pipeline/entrenadores.py`.
 
 ## Monitoreo
 
@@ -149,7 +170,6 @@ Lo que no está hecho todavía, dicho con su motivo:
 |---|---|
 | `make train` reemplaza el modelo sin revisión | Sobrescribe `models/clasificador_pm25.joblib` y no conserva el anterior; falta guardar cada entrenamiento con fecha y huella de datos (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md) y el riesgo 12) |
 | Ficha del modelo (`docs/model-card.md`) | No está escrita; por ahora los resultados y las limitaciones están en este README |
-| Entrenador de LightGBM dentro del pipeline | `make train` ya entrena LightGBM, pero el pipeline de Prefect sigue registrando solo la línea base en `reports/candidato.json` |
 | Compuerta de promoción (`gate`) | Falta acordar la precisión mínima |
 | Dockerfile y pruebas de la API en CI | La API funciona (`make api`), pero no tiene pruebas propias ni contenedor |
 | Unidades de los contaminantes | La ficha de UCI no las declara; en la dataset card se asumen µg/m³ por la escala observada y está marcado |
