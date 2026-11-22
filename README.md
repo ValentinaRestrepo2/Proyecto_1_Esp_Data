@@ -22,7 +22,10 @@ cd Proyecto_1_Esp_Data
 make setup      # instala dependencias desde uv.lock
 make data       # descarga y une los datos (unos 34 MB, no se versionan)
 make smoke      # diagnostica el entorno: sale con código 1 si algo falta
+make train      # entrena el modelo y muestra métricas (descarga los datos si faltan)
 make test       # pruebas
+make app        # abre la app de Streamlit (entrena si no hay modelo)
+make api        # levanta la API; documentación en http://127.0.0.1:8000/docs
 make drift      # genera el reporte de drift en reports/
 make pipeline   # corre el pipeline completo (Prefect) de punta a punta
 ```
@@ -34,7 +37,10 @@ make pipeline   # corre el pipeline completo (Prefect) de punta a punta
 | `make setup` | `uv sync` |
 | `make data` | `uv run python -m proyecto_1_esp_data.data.download` |
 | `make smoke` | `uv run python -m proyecto_1_esp_data.smoke` |
+| `make train` | `uv run python -m proyecto_1_esp_data.train` |
 | `make test` | `uv run pytest` |
+| `make app` | `uv run streamlit run app/streamlit_app.py` |
+| `make api` | `uv run uvicorn app.api_fastapi:app --reload` |
 | `make lint` | `uv run ruff check .` |
 | `make drift` | `uv run python -m proyecto_1_esp_data.monitoring.drift` |
 | `make drift-check` | `uv run python -m proyecto_1_esp_data.monitoring.drift --check` |
