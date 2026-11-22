@@ -1,25 +1,29 @@
 {
-  "candidato": "baseline_persistencia",
+  "candidato": "lightgbm",
   "parametros": {
-    "regla": "manana = hoy",
-    "umbral_pm25": 75.0
+    "n_estimators": 300,
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "class_weight": "balanced",
+    "random_state": 42,
+    "umbral_decision": 0.5
   },
   "semilla": 42,
   "huella_datos_sha256": "e63a369c2ac0a5667225b0c8b3d92cd367c04a295790a0f496ae0c32b2ece1b7",
   "metricas": {
-    "candidato": "baseline_persistencia",
+    "candidato": "lightgbm",
     "modelo": {
       "val": {
-        "n": 4301,
-        "sensibilidad": 0.6414201183431952,
-        "precision": 0.6433234421364985,
-        "f1": 0.6423703703703704
+        "n": 4326,
+        "sensibilidad": 0.7392330383480826,
+        "precision": 0.6839519650655022,
+        "f1": 0.7105188545506096
       },
       "produccion": {
-        "n": 4990,
-        "sensibilidad": 0.5910333515582286,
-        "precision": 0.5878194671016856,
-        "f1": 0.589422028353326
+        "n": 5031,
+        "sensibilidad": 0.6467391304347826,
+        "precision": 0.6105695228322217,
+        "f1": 0.6281340723145948
       }
     },
     "linea_base": {
@@ -38,76 +42,76 @@
     },
     "por_estacion_validacion": {
       "Aotizhongxin": {
-        "n": 355.0,
-        "sensibilidad": 0.662,
-        "precision": 0.662,
-        "f1": 0.662
+        "n": 358.0,
+        "sensibilidad": 0.797,
+        "precision": 0.702,
+        "f1": 0.747
       },
       "Changping": {
-        "n": 350.0,
-        "sensibilidad": 0.595,
-        "precision": 0.595,
-        "f1": 0.595
+        "n": 353.0,
+        "sensibilidad": 0.598,
+        "precision": 0.676,
+        "f1": 0.635
       },
       "Dingling": {
-        "n": 361.0,
-        "sensibilidad": 0.573,
-        "precision": 0.578,
-        "f1": 0.575
+        "n": 363.0,
+        "sensibilidad": 0.691,
+        "precision": 0.618,
+        "f1": 0.652
       },
       "Dongsi": {
-        "n": 361.0,
-        "sensibilidad": 0.66,
-        "precision": 0.664,
-        "f1": 0.662
+        "n": 362.0,
+        "sensibilidad": 0.765,
+        "precision": 0.727,
+        "f1": 0.745
       },
       "Guanyuan": {
-        "n": 362.0,
-        "sensibilidad": 0.66,
-        "precision": 0.66,
-        "f1": 0.66
+        "n": 363.0,
+        "sensibilidad": 0.796,
+        "precision": 0.736,
+        "f1": 0.765
       },
       "Gucheng": {
-        "n": 357.0,
-        "sensibilidad": 0.622,
-        "precision": 0.626,
-        "f1": 0.624
+        "n": 360.0,
+        "sensibilidad": 0.725,
+        "precision": 0.61,
+        "f1": 0.663
       },
       "Huairou": {
-        "n": 362.0,
-        "sensibilidad": 0.651,
-        "precision": 0.651,
-        "f1": 0.651
+        "n": 363.0,
+        "sensibilidad": 0.562,
+        "precision": 0.709,
+        "f1": 0.627
       },
       "Nongzhanguan": {
-        "n": 351.0,
-        "sensibilidad": 0.644,
-        "precision": 0.644,
-        "f1": 0.644
+        "n": 356.0,
+        "sensibilidad": 0.773,
+        "precision": 0.682,
+        "f1": 0.725
       },
       "Shunyi": {
         "n": 364.0,
-        "sensibilidad": 0.636,
-        "precision": 0.636,
-        "f1": 0.636
+        "sensibilidad": 0.755,
+        "precision": 0.708,
+        "f1": 0.731
       },
       "Tiantan": {
-        "n": 362.0,
-        "sensibilidad": 0.653,
-        "precision": 0.653,
-        "f1": 0.653
+        "n": 363.0,
+        "sensibilidad": 0.755,
+        "precision": 0.703,
+        "f1": 0.728
       },
       "Wanliu": {
-        "n": 357.0,
-        "sensibilidad": 0.671,
-        "precision": 0.676,
-        "f1": 0.674
+        "n": 360.0,
+        "sensibilidad": 0.836,
+        "precision": 0.667,
+        "f1": 0.742
       },
       "Wanshouxigong": {
-        "n": 359.0,
-        "sensibilidad": 0.645,
-        "precision": 0.65,
-        "f1": 0.648
+        "n": 361.0,
+        "sensibilidad": 0.761,
+        "precision": 0.671,
+        "f1": 0.713
       }
     }
   },
