@@ -160,7 +160,7 @@ Los notebooks se guardan **sin salidas** (una prueba falla si no).
 - [`docs/adr/000-stack.md`](docs/adr/000-stack.md): por qué este stack.
 - [`docs/adr/001-python-312.md`](docs/adr/001-python-312.md): decisión revertida (Python 3.15 a 3.12).
 - [`docs/adr/002-prefect.md`](docs/adr/002-prefect.md): cómo y por qué se orquesta con Prefect.
-- [`docs/adr/003-joblib-en-vez-de-mlflow.md`](docs/adr/003-joblib-en-vez-de-mlflow.md): por qué el modelo se guarda con joblib y no con MLflow (propuesta).
+- [`docs/adr/003-joblib-en-vez-de-mlflow.md`](docs/adr/003-joblib-en-vez-de-mlflow.md): por qué el modelo se guarda con joblib y no con MLflow.
 
 ## Estado y pendientes
 
