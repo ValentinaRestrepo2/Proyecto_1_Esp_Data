@@ -3,11 +3,13 @@
 Cada entrenador recibe las particiones de `prepare.dividir` y devuelve un `Candidato`:
 un modelo ya ajustado, con la función que predice sobre una partición.
 
-Para agregar un modelo (por ejemplo, LightGBM):
-1. Escribir `def entrenar_lightgbm(partes) -> Candidato`. Ajustar **solo con**
-   `partes["train"]` (imputadores y escaladores incluidos) y usar `config.SEMILLA`.
-2. Registrarlo en `ENTRENADORES`.
-3. Correr el pipeline con `--modelo lightgbm`.
+Modelos disponibles:
+- `baseline`: "mañana = hoy", no aprende nada.
+- `lightgbm`: el mismo pipeline que entrena `make train` (`model.py`), ajustado
+  **solo con** `partes["train"]`, imputadores y escaladores incluidos.
+
+Para agregar otro modelo: escribir `def entrenar_<nombre>(partes) -> Candidato`,
+registrarlo en `ENTRENADORES` y correr el pipeline con `--modelo <nombre>`.
 
 El pipeline nunca promueve un candidato: solo lo evalúa y lo deja registrado.
 """
@@ -21,6 +23,8 @@ import pandas as pd
 
 from proyecto_1_esp_data import config
 from proyecto_1_esp_data.data import prepare
+from proyecto_1_esp_data.features import COLUMNAS_X, TARGET
+from proyecto_1_esp_data.model import construir_pipeline
 
 
 @dataclass(frozen=True)
@@ -42,6 +46,33 @@ def entrenar_baseline(partes: dict[str, pd.DataFrame]) -> Candidato:
     )
 
 
+def entrenar_lightgbm(partes: dict[str, pd.DataFrame]) -> Candidato:
+    """El LightGBM de `model.py`, ajustado solo con la partición de train."""
+    train = partes["train"]
+    pipeline = construir_pipeline().fit(train[COLUMNAS_X], train[TARGET])
+
+    def predecir(tabla: pd.DataFrame) -> pd.Series:
+        proba = pipeline.predict_proba(tabla[COLUMNAS_X])[:, 1]
+        return pd.Series(
+            (proba >= config.UMBRAL_DECISION).astype(float), index=tabla.index
+        )
+
+    clasificador = pipeline.named_steps["clasificador"].get_params()
+    parametros = {
+        clave: clasificador[clave]
+        for clave in (
+            "n_estimators",
+            "learning_rate",
+            "num_leaves",
+            "class_weight",
+            "random_state",
+        )
+    }
+    parametros["umbral_decision"] = config.UMBRAL_DECISION
+    return Candidato(nombre="lightgbm", predecir=predecir, parametros=parametros)
+
+
 ENTRENADORES: dict[str, Callable[[dict[str, pd.DataFrame]], Candidato]] = {
     "baseline": entrenar_baseline,
+    "lightgbm": entrenar_lightgbm,
 }
