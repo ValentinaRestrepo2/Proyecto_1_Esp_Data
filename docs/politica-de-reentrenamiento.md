@@ -2,6 +2,8 @@
 
 Define **cuándo** se revisa el modelo, **qué señales** activan una alerta, **quién decide** y **cómo** se cambia el modelo en producción. Todos los umbrales viven en `src/proyecto_1_esp_data/config.py`.
 
+El modelo vigente es el archivo `models/clasificador_pm25.joblib`, el que cargan la app y la API. No hay registro de modelos ni alias `@champion`: ver [ADR 003](adr/003-joblib-en-vez-de-mlflow.md).
+
 **Principio central:** ninguna señal reentrena ni promueve un modelo por sí sola. Las señales generan una **alerta**; una persona revisa y decide.
 
 ## 1. Qué se monitorea
@@ -42,15 +44,16 @@ Si solo hay drift y el rendimiento se mantiene, se documenta y se sigue vigiland
 ## 4. Cómo se reentrena y se promueve
 
 1. El pipeline (`make pipeline`, y cada trimestre el deployment `calidad-aire-trimestral`) entrena un **candidato** con los datos hasta la fecha, reservando los últimos 12 meses como validación y respetando el split temporal (sin mezclar filas).
-2. Se compara contra el modelo vigente (`@champion`) en la validación **y** en la ventana reciente, con sensibilidad, precisión mínima, F1 y PR-AUC, además de las métricas por estación.
+2. Se compara contra el modelo vigente (`models/clasificador_pm25.joblib`) en la validación **y** en la ventana reciente, con sensibilidad, precisión mínima, F1 y PR-AUC, además de las métricas por estación.
 3. El candidato debe superar al vigente en sensibilidad **sin** bajar de la precisión mínima, y superar la línea base "mañana = hoy".
-4. El pipeline deja el candidato en `reports/candidato.json` con `promovido: false`. **La promoción es manual:** una persona del equipo mueve el alias `@champion` en el registro de modelos después de revisar la comparación. Ningún flujo automático promueve modelos.
-5. Se conserva el modelo anterior para poder **volver atrás** moviendo el alias de nuevo.
+4. El pipeline deja el candidato en `reports/candidato.json` con `promovido: false`. **La promoción es manual:** después de revisar la comparación, una persona del equipo copia el candidato aprobado a `models/clasificador_pm25.joblib`. Ningún flujo automático promueve modelos.
+5. Antes de reemplazarlo, se guarda una copia del modelo vigente con la fecha en el nombre (por ejemplo, `models/clasificador_pm25_2026-11-22.joblib`) para poder **volver atrás**.
 
 ## 5. Aprobación, `rollback` y registro
 
-- **Aprobador:** una persona del equipo distinta de quien entrenó el candidato revisa la comparación y mueve el alias.
-- **`Rollback`:** volver al modelo anterior moviendo de nuevo el alias `@champion` a la versión previa, que siempre se conserva. No requiere reentrenar.
+- **Aprobador:** una persona del equipo distinta de quien entrenó el candidato revisa la comparación y copia el archivo del candidato a `models/clasificador_pm25.joblib`.
+- **`Rollback`:** volver al modelo anterior copiando de nuevo la copia fechada a `models/clasificador_pm25.joblib`. No requiere reentrenar.
+- **Dónde queda el registro:** sin MLflow, la decisión se documenta en el Pull Request que hace el cambio (con la comparación de métricas) y en el README (sección "Resultados").
 - **Qué queda registrado en cada decisión:** el motivo del `trigger` (qué señal saltó y con qué valor), las ventanas de datos usadas, el hash de `data/raw/metadata.json`, las métricas del candidato y del vigente, quién aprobó y la fecha. El resumen `reports/drift_resumen.json` se guarda junto a la corrida.
 
 ## 6. Responsables
@@ -67,3 +70,4 @@ Si solo hay drift y el rendimiento se mantiene, se documenta y se sigue vigiland
 - El umbral de drift usa el valor por defecto de Evidently; con solo 4 años de datos no hay base para calibrarlo mejor. Se revisará cuando haya más ventanas.
 - Las 12 estaciones se evalúan juntas, pero están muy correlacionadas entre sí (correlación diaria mínima 0,88), así que no son 12 muestras independientes. El rendimiento también se mira por estación.
 - La política asume que el target se observa al día siguiente. Si el dato llegara con retraso, el monitoreo de rendimiento se retrasa igual.
+- **Hoy `make train` no sigue la sección 4:** sobrescribe `models/clasificador_pm25.joblib` directamente y no guarda copia del anterior. Mientras eso no cambie, entrenar con `make train` equivale a promover sin revisión, así que solo debe hacerse a propósito (ver ADR 003 y el riesgo 12 en `docs/riesgos.md`).

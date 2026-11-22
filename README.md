@@ -8,9 +8,33 @@ El foco del proyecto es el **ciclo de vida** (datos validados, split sin fuga, m
 
 - **Tarea:** clasificación binaria por estación y día.
 - **Target:** `PM2.5 medio de mañana > 75 µg/m³` (`UMBRAL_PM25` en `config.py`).
+- **Por qué 75 µg/m³:** es el límite diario (24 h) de PM2.5 del [estándar chino GB 3095-2012](https://english.mee.gov.cn/Resources/standards/Air_Environment/quality_standard1/201605/t20160511_337502.shtml), nivel II, y la meta intermedia 1 de la [guía de calidad del aire de la OMS de 2021](https://www.ncbi.nlm.nih.gov/books/NBK574591/table/ch3.tab24/).
 - **Métrica principal:** sensibilidad (no avisar un día malo es el error más costoso), con precisión mínima, F1 y PR-AUC de apoyo.
 - **Línea base:** "mañana = hoy". Sensibilidad de **0,64** en validación y **0,59** en producción simulada. Es el número a superar.
 - **Datos:** [Beijing Multi-Site Air Quality](https://archive.ics.uci.edu/dataset/501) (UCI), licencia CC BY 4.0. Detalles en [`docs/dataset-card.md`](docs/dataset-card.md).
+
+## Resultados
+
+Modelo: LightGBM (300 árboles, `class_weight="balanced"`, semilla 42) con las 16 variables de `features.py` y umbral de decisión 0,5. Se entrena solo con train (2013-03 a 2014-12); la imputación y el escalado se ajustan dentro del pipeline, sin ver validación ni producción. Se reproduce con `make train`.
+
+| Partición | Modelo | Sensibilidad | Precisión | F1 | Filas |
+|---|---|---|---|---|---|
+| Validación (2015) | Línea base | 0,641 | 0,643 | 0,642 | 4.301 |
+| Validación (2015) | **LightGBM** | **0,739** | **0,684** | **0,711** | 4.326 |
+| Producción simulada (2016-01 a 2017-02) | Línea base | 0,591 | 0,588 | 0,589 | 4.990 |
+| Producción simulada (2016-01 a 2017-02) | **LightGBM** | **0,647** | **0,611** | **0,628** | 5.031 |
+
+El modelo supera a la línea base en las tres métricas y en las dos particiones: en validación detecta 74 de cada 100 días malos, frente a 64.
+
+### Limitaciones
+
+- **Pierde rendimiento con el tiempo.** La sensibilidad baja de 0,74 en validación a 0,65 en producción. Coincide con el cambio en los datos: los días malos bajan de 39,2 % a 36,6 % y el reporte de drift marca 9 de 17 columnas entre 2015 y 2016. Ver [`docs/politica-de-reentrenamiento.md`](docs/politica-de-reentrenamiento.md).
+- **La comparación no usa exactamente las mismas filas.** La línea base no puede predecir cuando falta el PM2.5 de hoy; el modelo sí, porque imputa. Son menos del 1 % de las filas.
+- **La mejora es moderada.** Buena parte de la señal ya está en el PM2.5 de hoy.
+- **Solo usa datos de hoy.** No incluye pronóstico meteorológico de mañana, así que le cuesta anticipar cambios bruscos por viento o lluvia.
+- **Las 12 estaciones no son independientes** (correlación diaria mínima de 0,88): cuando el modelo falla un día, suele fallar en varias estaciones a la vez.
+- **El umbral de 0,5 no se ha ajustado** y aún no se ha fijado una precisión mínima.
+- **Unidades asumidas.** La fuente no declara las unidades; se asumen µg/m³ (ver la dataset card).
 
 ## Cómo ejecutarlo
 
@@ -89,7 +113,7 @@ reports/               reporte de drift (HTML) y su resumen (JSON)
 - **Caché medido** (`make pipeline-cache`, datos reales, 3 mediciones en un entorno de 1 CPU): primera ejecución 2,9 a 3,1 s, segunda 0,8 a 0,9 s, aceleración de **3,2 a 3,4 veces**. Recalcular en tu máquina da otros segundos; lo que se conserva es la proporción.
 - **Artifacts:** tabla de métricas (modelo y línea base, en validación y producción) y resumen de drift, visibles en la interfaz de Prefect.
 - **Schedule:** `make serve` deja el flujo corriendo con el deployment `calidad-aire-trimestral` (cron `0 6 1 1,4,7,10 *`, zona `America/Bogota`): una vez por trimestre, igual que la política de reentrenamiento.
-- **No promueve.** Registra `reports/candidato.json` con `promovido: false`. Mover el alias `@champion` es decisión de una persona.
+- **No promueve.** Registra `reports/candidato.json` con `promovido: false`. Reemplazar el modelo vigente (`models/clasificador_pm25.joblib`) es decisión de una persona. No hay registro de modelos ni alias `@champion`: el modelo se guarda con joblib (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md)).
 - El modelo se elige con `--modelo`. Hoy solo existe `baseline` ("mañana = hoy"); para agregar LightGBM basta una función en `pipeline/entrenadores.py`.
 
 ## Monitoreo
@@ -115,6 +139,7 @@ Los notebooks se guardan **sin salidas** (una prueba falla si no).
 - [`docs/adr/000-stack.md`](docs/adr/000-stack.md): por qué este stack.
 - [`docs/adr/001-python-312.md`](docs/adr/001-python-312.md): decisión revertida (Python 3.15 a 3.12).
 - [`docs/adr/002-prefect.md`](docs/adr/002-prefect.md): cómo y por qué se orquesta con Prefect.
+- [`docs/adr/003-joblib-en-vez-de-mlflow.md`](docs/adr/003-joblib-en-vez-de-mlflow.md): por qué el modelo se guarda con joblib y no con MLflow (propuesta).
 
 ## Estado y pendientes
 
@@ -122,8 +147,9 @@ Lo que no está hecho todavía, dicho con su motivo:
 
 | Pendiente | Motivo |
 |---|---|
-| Entrenamiento (`make train`), MLflow, registro de modelos con alias y `docs/model-card.md` | En desarrollo; el Pipeline y la API dependen de que exista un modelo registrado |
-| Entrenador de LightGBM dentro del pipeline | El pipeline ya corre con la línea base; falta registrar el entrenador de LightGBM en `pipeline/entrenadores.py` |
-| Compuerta de promoción (`gate`) | Depende de las métricas del modelo real y de la precisión mínima acordada |
-| API (FastAPI), Dockerfile y tests de la API en CI | Depende del modelo registrado |
+| `make train` reemplaza el modelo sin revisión | Sobrescribe `models/clasificador_pm25.joblib` y no conserva el anterior; falta guardar cada entrenamiento con fecha y huella de datos (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md) y el riesgo 12) |
+| Ficha del modelo (`docs/model-card.md`) | No está escrita; por ahora los resultados y las limitaciones están en este README |
+| Entrenador de LightGBM dentro del pipeline | `make train` ya entrena LightGBM, pero el pipeline de Prefect sigue registrando solo la línea base en `reports/candidato.json` |
+| Compuerta de promoción (`gate`) | Falta acordar la precisión mínima |
+| Dockerfile y pruebas de la API en CI | La API funciona (`make api`), pero no tiene pruebas propias ni contenedor |
 | Unidades de los contaminantes | La ficha de UCI no las declara; en la dataset card se asumen µg/m³ por la escala observada y está marcado |
