@@ -1,6 +1,6 @@
 # ADR 003: Guardar el modelo con joblib en lugar de MLflow
 
-- **Estado:** propuesta (2026-11-22). Pendiente de aprobación del equipo. Al aceptarse, **reemplaza** la fila "Tracking y registro" del [ADR 000](000-stack.md).
+- **Estado:** aceptada (2026-11-22), con aprobación del equipo. **Reemplaza** la fila "Tracking y registro" del [ADR 000](000-stack.md).
 - **Relacionadas:** [ADR 000](000-stack.md), [ADR 001](001-python-312.md), [política de reentrenamiento](../politica-de-reentrenamiento.md), [riesgos](../riesgos.md).
 
 ## Contexto
