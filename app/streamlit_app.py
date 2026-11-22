@@ -85,7 +85,7 @@ def titulo(texto: str) -> None:
     st.markdown(f'<div class="seccion">{texto}</div>', unsafe_allow_html=True)
 
 
-def mostrar_resultado(r: dict) -> None:
+def mostrar_resultado(r: dict, estacion: str) -> None:
     p = r["probabilidad_pm25_mala_manana"]
     if r["mala_calidad_manana"]:
         etiqueta, color = "Mala calidad anticipada", "#b91c1c"
@@ -99,7 +99,7 @@ def mostrar_resultado(r: dict) -> None:
         f'<div class="pct" style="color:{color}">{p:.0%}</div>'
         f'<div class="nivel" style="color:{color}">{etiqueta}</div>'
         f'<p class="texto">Probabilidad de que mañana el PM2.5 supere '
-        f"{config.UMBRAL_PM25:.0f} µg/m³ en esta estación.</p>"
+        f"{config.UMBRAL_PM25:.0f} µg/m³ en la estación <b>{estacion}</b>.</p>"
         f"</div>",
         unsafe_allow_html=True,
     )
@@ -161,7 +161,7 @@ with derecha:
         )
     else:
         try:
-            mostrar_resultado(predecir(datos))
+            mostrar_resultado(predecir(datos), datos["station"])
         except FileNotFoundError as e:
             st.error(str(e))
         except ValueError as e:
