@@ -19,7 +19,10 @@ jobs:
         run: uv python install 3.12
 
       - name: Sincronizar dependencias
-        run: uv sync --dev
+        run: uv sync --locked --dev
+
+      - name: Formato (ruff format)
+        run: uv run ruff format --check .
 
       - name: Lint
         run: uv run ruff check .
