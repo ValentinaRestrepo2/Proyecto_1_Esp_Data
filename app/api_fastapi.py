@@ -72,7 +72,11 @@ def salud() -> dict:
     }
 
 
-@app.post("/predict", response_model=Respuesta, summary="Predice la calidad del aire de mañana")
+@app.post(
+    "/predict",
+    response_model=Respuesta,
+    summary="Predice la calidad del aire de mañana",
+)
 def predecir_endpoint(entrada: Entrada) -> dict:
     try:
         return predecir(entrada.model_dump())

@@ -28,8 +28,7 @@ COLUMNAS_X = NUMERICAS + CATEGORICAS
 
 
 def construir_preprocesador() -> ColumnTransformer:
-    """Imputación + escalado para numéricas; imputación + one-hot para categóricas.
-    """
+    """Imputación + escalado para numéricas; imputación + one-hot para categóricas."""
     numerico = Pipeline(
         [
             ("imputar", SimpleImputer(strategy="median")),

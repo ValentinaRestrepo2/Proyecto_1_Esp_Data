@@ -24,7 +24,7 @@ def obtener_pipeline():
 
 
 def predecir(datos: dict) -> dict:
-    """ Esta función predice para una sola muestra"""
+    """Esta función predice para una sola muestra"""
     faltantes = [c for c in COLUMNAS_X if c not in datos]
     if faltantes:
         raise ValueError(f"Faltan columnas: {faltantes}")
