@@ -69,6 +69,7 @@ make data       # descarga y une los datos (unos 34 MB, no se versionan)
 make smoke      # diagnostica el entorno: sale con código 1 si algo falta
 make train      # entrena y registra un CANDIDATO en MLflow (descarga los datos si faltan)
 make promote APROBADOR=tu-nombre   # la compuerta decide si el candidato pasa a ser el modelo vigente
+make model-card # regenera docs/model-card.md desde los reportes
 make test       # pruebas
 make app        # abre la app de Streamlit (necesita un modelo vigente: make train y make promote)
 make api        # levanta la API (necesita un modelo vigente); documentación en http://127.0.0.1:8000/docs
@@ -86,6 +87,7 @@ make pipeline   # corre el pipeline completo (Prefect) de punta a punta
 | `make smoke` | `uv run python -m proyecto_1_esp_data.smoke` |
 | `make train` | `uv run python -m proyecto_1_esp_data.train` |
 | `make promote APROBADOR=nombre` | `uv run python -m proyecto_1_esp_data.promocion --aprobador nombre` |
+| `make model-card` | `uv run python -m proyecto_1_esp_data.model_card` |
 | `make mlflow-ui` | `uv run mlflow ui --backend-store-uri sqlite:///mlflow.db` |
 | `make test` | `uv run pytest` |
 | `make app` | `uv run streamlit run app/streamlit_app.py` |
@@ -125,6 +127,7 @@ src/proyecto_1_esp_data/
   train.py             entrena y registra un candidato en MLflow (no promueve)
   registro.py          conexión al registro de MLflow, alias y lectura de métricas
   promocion.py         compuerta de promoción y rollback
+  model_card.py        genera docs/model-card.md desde los reportes
   predict.py           carga el modelo vigente (alias champion) y predice
   pipeline/flow.py     pipeline de Prefect (reintentos, caché, schedule)
   pipeline/entrenadores.py  un entrenador por modelo: línea base y LightGBM
@@ -132,7 +135,7 @@ src/proyecto_1_esp_data/
 app/                   API (FastAPI) y app (Streamlit)
 tests/                 pruebas (datos, modelo, registro, API, monitoreo, notebooks, smoke)
 notebooks/01_eda.ipynb análisis exploratorio (sin salidas)
-docs/                  dataset card, política de reentrenamiento, riesgos, ADRs
+docs/                  model card, contrato de la API, dataset card, política, riesgos, ADRs
 reports/               reporte de drift, candidato del pipeline e historial de promociones
 ```
 
@@ -142,7 +145,7 @@ reports/               reporte de drift, candidato del pipeline e historial de p
 
 - **Reintentos:** solo en la descarga (la única tarea con red), 3 intentos con espera exponencial de 10 s, 20 s, 40 s y jitter. Solo se reintentan errores de red: un hash distinto o un contrato roto no se arreglan reintentando, así que fallan de inmediato.
 - **Caché:** en las dos tareas costosas (tabla diaria y drift). La llave combina el hash SHA-256 del CSV, los umbrales de `config.py` y el código fuente del módulo: cambia cualquiera y se recalcula.
-- **Caché medido** (`make pipeline-cache`, datos reales, 3 mediciones en un entorno de 1 CPU): primera ejecución 2,9 a 3,1 s, segunda 0,8 a 0,9 s, aceleración de **3,2 a 3,4 veces**. Recalcular en tu máquina da otros segundos; lo que se conserva es la proporción.
+- **Caché medido** (`make pipeline-cache`, datos reales, en un portátil con Windows): primera ejecución 10,6 s, segunda 3,77 s, aceleración de unas **2,8 veces**. Recalcular en otra máquina da otros segundos; lo que se conserva es la proporción.
 - **Artifacts:** tabla de métricas (modelo y línea base, en validación y producción) y resumen de drift, visibles en la interfaz de Prefect.
 - **Schedule:** `make serve` deja el flujo corriendo con el deployment `calidad-aire-trimestral` (cron `0 6 1 1,4,7,10 *`, zona `America/Bogota`): una vez por trimestre, igual que la política de reentrenamiento.
 - **No promueve.** Registra `reports/candidato.json` con `promovido: false`. El modelo vigente solo lo cambia la compuerta de promoción (ver la sección siguiente).
@@ -194,6 +197,8 @@ Los notebooks se guardan **sin salidas** (una prueba falla si no).
 
 ## Documentación
 
+- [`docs/model-card.md`](docs/model-card.md): ficha del modelo (uso previsto, rendimiento, aprobación y límites). Se regenera con `make model-card`.
+- [`docs/api-contract.md`](docs/api-contract.md): contrato de la API (entradas, respuestas y errores).
 - [`docs/dataset-card.md`](docs/dataset-card.md): procedencia, licencia, nulos, límites y riesgos de fuga de datos.
 - [`docs/politica-de-reentrenamiento.md`](docs/politica-de-reentrenamiento.md): señales, umbrales y quién decide.
 - [`docs/riesgos.md`](docs/riesgos.md): riesgos técnicos y de uso.
@@ -209,7 +214,6 @@ Lo que no está hecho todavía, dicho con su motivo:
 
 | Pendiente | Motivo |
 |---|---|
-| Ficha del modelo (`docs/model-card.md`) | No está escrita; por ahora los resultados y las limitaciones están en este README |
 | Búsqueda estructurada de hiperparámetros | Hoy cada `make train` es una corrida comparable; no hay una búsqueda con 20 o más corridas anidadas |
 | Confirmar `PRECISION_MINIMA` | 0,60 es un valor inicial entre la línea base y LightGBM; el equipo debe confirmarlo |
 | Unidades de los contaminantes | La ficha de UCI no las declara; en la dataset card se asumen µg/m³ por la escala observada y está marcado |
