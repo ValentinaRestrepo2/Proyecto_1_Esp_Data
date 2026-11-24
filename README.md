@@ -164,6 +164,19 @@ make mlflow-ui                      # abre la interfaz para ver y comparar corri
 - **Rollback:** `uv run python -m proyecto_1_esp_data.promocion --aprobador tu-nombre --volver-a <versión>`.
 - La API y la app cargan `models:/clasificador_pm25@champion`; `/health` informa la `version_modelo` que están sirviendo. Sin modelo vigente, la API responde 503.
 
+## Contenedor (Docker)
+
+La imagen se construye con el `Dockerfile` (multi-stage, usuario sin root, healthcheck). Durante el build descarga los datos, entrena y pasa el candidato por la compuerta de promoción: si la compuerta lo rechaza, el build falla y no queda una imagen con un modelo no aprobado.
+
+```bash
+docker build -t calidad-aire .
+docker run --rm -p 8000:8000 calidad-aire
+# en otra terminal:
+curl http://localhost:8000/health
+```
+
+El build necesita internet (descarga el dataset de UCI y verifica su hash). Para cambiar quién figura como aprobador en el historial: `docker build --build-arg APROBADOR=su_nombre -t calidad-aire .`
+
 ## Monitoreo
 
 `make drift` compara dos ventanas reales de 12 meses (2015 contra 2016) con Evidently. `make drift-check` termina con código de salida 1 si hay drift y 0 si no. Con 2015 contra 2016 sale con 1 (9 de 17 columnas); con dos años tranquilos (2013-14 contra 2014-15) sale con 0.
@@ -197,7 +210,6 @@ Lo que no está hecho todavía, dicho con su motivo:
 | Pendiente | Motivo |
 |---|---|
 | Ficha del modelo (`docs/model-card.md`) | No está escrita; por ahora los resultados y las limitaciones están en este README |
-| Dockerfile | La API funciona (`make api`) y tiene pruebas, pero aún no hay contenedor. La imagen necesita el registro de MLflow (entrenar y promover dentro de la imagen, o montarlo) |
 | Búsqueda estructurada de hiperparámetros | Hoy cada `make train` es una corrida comparable; no hay una búsqueda con 20 o más corridas anidadas |
 | Confirmar `PRECISION_MINIMA` | 0,60 es un valor inicial entre la línea base y LightGBM; el equipo debe confirmarlo |
 | Unidades de los contaminantes | La ficha de UCI no las declara; en la dataset card se asumen µg/m³ por la escala observada y está marcado |
