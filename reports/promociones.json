@@ -1,0 +1,126 @@
+[
+  {
+    "fecha_utc": "2026-11-24T05:15:16+00:00",
+    "accion": "promocion",
+    "version": "1",
+    "decision": "aprobado",
+    "decidido_por": "Santiago",
+    "version_anterior": null,
+    "razones_de_rechazo": [],
+    "comprobaciones": [
+      {
+        "regla": "Sensibilidad en val supera a la línea base",
+        "cumple": true,
+        "detalle": "candidato 0.739 frente a línea base 0.641"
+      },
+      {
+        "regla": "Sensibilidad en produccion supera a la línea base",
+        "cumple": true,
+        "detalle": "candidato 0.647 frente a línea base 0.591"
+      },
+      {
+        "regla": "Precisión en val alcanza la mínima",
+        "cumple": true,
+        "detalle": "candidato 0.684, mínima 0.600"
+      }
+    ],
+    "metricas_candidato": {
+      "val": {
+        "sensibilidad": 0.7392330383480826,
+        "precision": 0.6839519650655022,
+        "f1": 0.7105188545506096
+      },
+      "produccion": {
+        "sensibilidad": 0.6467391304347826,
+        "precision": 0.6105695228322217,
+        "f1": 0.6281340723145948
+      }
+    },
+    "metricas_linea_base": {
+      "val": {
+        "sensibilidad": 0.6414201183431952,
+        "precision": 0.6433234421364985,
+        "f1": 0.6423703703703704
+      },
+      "produccion": {
+        "sensibilidad": 0.5910333515582286,
+        "precision": 0.5878194671016856,
+        "f1": 0.589422028353326
+      }
+    },
+    "metricas_vigente": null,
+    "huella_datos_sha256": "e63a369c2ac0a5667225b0c8b3d92cd367c04a295790a0f496ae0c32b2ece1b7",
+    "run_id": "4413caebc65949eeaf205a86c730251b"
+  },
+  {
+    "fecha_utc": "2026-11-24T05:16:18+00:00",
+    "accion": "promocion",
+    "version": "2",
+    "decision": "rechazado",
+    "decidido_por": "Santiago",
+    "version_anterior": "1",
+    "razones_de_rechazo": [
+      "Sensibilidad en val supera al modelo vigente: candidato 0.739 frente a vigente 0.739"
+    ],
+    "comprobaciones": [
+      {
+        "regla": "Sensibilidad en val supera a la línea base",
+        "cumple": true,
+        "detalle": "candidato 0.739 frente a línea base 0.641"
+      },
+      {
+        "regla": "Sensibilidad en produccion supera a la línea base",
+        "cumple": true,
+        "detalle": "candidato 0.647 frente a línea base 0.591"
+      },
+      {
+        "regla": "Precisión en val alcanza la mínima",
+        "cumple": true,
+        "detalle": "candidato 0.684, mínima 0.600"
+      },
+      {
+        "regla": "Sensibilidad en val supera al modelo vigente",
+        "cumple": false,
+        "detalle": "candidato 0.739 frente a vigente 0.739"
+      }
+    ],
+    "metricas_candidato": {
+      "val": {
+        "sensibilidad": 0.7392330383480826,
+        "precision": 0.6839519650655022,
+        "f1": 0.7105188545506096
+      },
+      "produccion": {
+        "sensibilidad": 0.6467391304347826,
+        "precision": 0.6105695228322217,
+        "f1": 0.6281340723145948
+      }
+    },
+    "metricas_linea_base": {
+      "val": {
+        "sensibilidad": 0.6414201183431952,
+        "precision": 0.6433234421364985,
+        "f1": 0.6423703703703704
+      },
+      "produccion": {
+        "sensibilidad": 0.5910333515582286,
+        "precision": 0.5878194671016856,
+        "f1": 0.589422028353326
+      }
+    },
+    "metricas_vigente": {
+      "val": {
+        "sensibilidad": 0.7392330383480826,
+        "precision": 0.6839519650655022,
+        "f1": 0.7105188545506096
+      },
+      "produccion": {
+        "sensibilidad": 0.6467391304347826,
+        "precision": 0.6105695228322217,
+        "f1": 0.6281340723145948
+      }
+    },
+    "huella_datos_sha256": "e63a369c2ac0a5667225b0c8b3d92cd367c04a295790a0f496ae0c32b2ece1b7",
+    "run_id": "b71a4f618de1452184470a83774cf15d"
+  }
+]

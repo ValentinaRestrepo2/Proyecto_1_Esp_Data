@@ -67,10 +67,12 @@ cd Proyecto_1_Esp_Data
 make setup      # instala dependencias desde uv.lock
 make data       # descarga y une los datos (unos 34 MB, no se versionan)
 make smoke      # diagnostica el entorno: sale con código 1 si algo falta
-make train      # entrena el modelo y muestra métricas (descarga los datos si faltan)
+make train      # entrena y registra un CANDIDATO en MLflow (descarga los datos si faltan)
+make promote APROBADOR=tu-nombre   # la compuerta decide si el candidato pasa a ser el modelo vigente
 make test       # pruebas
-make app        # abre la app de Streamlit (entrena si no hay modelo)
-make api        # levanta la API; documentación en http://127.0.0.1:8000/docs
+make app        # abre la app de Streamlit (necesita un modelo vigente: make train y make promote)
+make api        # levanta la API (necesita un modelo vigente); documentación en http://127.0.0.1:8000/docs
+make mlflow-ui  # interfaz de MLflow para comparar corridas y ver el registro
 make drift      # genera el reporte de drift en reports/
 make pipeline   # corre el pipeline completo (Prefect) de punta a punta
 ```
@@ -83,6 +85,8 @@ make pipeline   # corre el pipeline completo (Prefect) de punta a punta
 | `make data` | `uv run python -m proyecto_1_esp_data.data.download` |
 | `make smoke` | `uv run python -m proyecto_1_esp_data.smoke` |
 | `make train` | `uv run python -m proyecto_1_esp_data.train` |
+| `make promote APROBADOR=nombre` | `uv run python -m proyecto_1_esp_data.promocion --aprobador nombre` |
+| `make mlflow-ui` | `uv run mlflow ui --backend-store-uri sqlite:///mlflow.db` |
 | `make test` | `uv run pytest` |
 | `make app` | `uv run streamlit run app/streamlit_app.py` |
 | `make api` | `uv run uvicorn app.api_fastapi:app --reload` |
@@ -116,13 +120,20 @@ src/proyecto_1_esp_data/
   data/download.py     descarga reproducible con hash
   data/contract.py     contrato de datos (rangos, relaciones, volumen)
   data/prepare.py      tabla diaria, target, split temporal y línea base
+  features.py          variables de entrada y preprocesamiento
+  model.py             pipeline: preprocesamiento + LightGBM
+  train.py             entrena y registra un candidato en MLflow (no promueve)
+  registro.py          conexión al registro de MLflow, alias y lectura de métricas
+  promocion.py         compuerta de promoción y rollback
+  predict.py           carga el modelo vigente (alias champion) y predice
   pipeline/flow.py     pipeline de Prefect (reintentos, caché, schedule)
   pipeline/entrenadores.py  un entrenador por modelo: línea base y LightGBM
   monitoring/drift.py  reporte de drift con Evidently
-tests/                 pruebas (datos, monitoreo, notebooks, smoke)
+app/                   API (FastAPI) y app (Streamlit)
+tests/                 pruebas (datos, modelo, registro, API, monitoreo, notebooks, smoke)
 notebooks/01_eda.ipynb análisis exploratorio (sin salidas)
 docs/                  dataset card, política de reentrenamiento, riesgos, ADRs
-reports/               reporte de drift (HTML) y su resumen (JSON)
+reports/               reporte de drift, candidato del pipeline e historial de promociones
 ```
 
 ## Pipeline
@@ -134,8 +145,24 @@ reports/               reporte de drift (HTML) y su resumen (JSON)
 - **Caché medido** (`make pipeline-cache`, datos reales, 3 mediciones en un entorno de 1 CPU): primera ejecución 2,9 a 3,1 s, segunda 0,8 a 0,9 s, aceleración de **3,2 a 3,4 veces**. Recalcular en tu máquina da otros segundos; lo que se conserva es la proporción.
 - **Artifacts:** tabla de métricas (modelo y línea base, en validación y producción) y resumen de drift, visibles en la interfaz de Prefect.
 - **Schedule:** `make serve` deja el flujo corriendo con el deployment `calidad-aire-trimestral` (cron `0 6 1 1,4,7,10 *`, zona `America/Bogota`): una vez por trimestre, igual que la política de reentrenamiento.
-- **No promueve.** Registra `reports/candidato.json` con `promovido: false`. Reemplazar el modelo vigente (`models/clasificador_pm25.joblib`) es decisión de una persona. No hay registro de modelos ni alias `@champion`: el modelo se guarda con joblib (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md)).
+- **No promueve.** Registra `reports/candidato.json` con `promovido: false`. El modelo vigente solo lo cambia la compuerta de promoción (ver la sección siguiente).
 - El modelo se elige con `--modelo`: `baseline` ("mañana = hoy", el valor por defecto) o `lightgbm`. Para registrar el modelo real: `uv run python -m proyecto_1_esp_data.pipeline.flow --modelo lightgbm`. Otro modelo se agrega con una función en `pipeline/entrenadores.py`.
+
+## Registro de modelos y promoción
+
+El registro es **MLflow local** (base `mlflow.db` y carpeta `mlruns/`, ignoradas por Git; ver [ADR 004](docs/adr/004-mlflow-local-y-compuerta.md)). El camino de un modelo es siempre el mismo:
+
+```
+make train                          # registra un candidato (alias candidate): parámetros, métricas, hash de datos, firma
+make promote APROBADOR=tu-nombre    # la compuerta lo compara y, si cumple, mueve el alias champion
+make mlflow-ui                      # abre la interfaz para ver y comparar corridas (http://127.0.0.1:5000)
+```
+
+- `make train` **nunca** cambia el modelo vigente. El modelo registrado es el pipeline completo (el preprocesamiento va dentro del artefacto).
+- La compuerta promueve solo si el candidato supera a la línea base en sensibilidad (en validación y en producción simulada), alcanza la precisión mínima (`PRECISION_MINIMA`, 0,60, valor inicial) y supera estrictamente al modelo vigente.
+- Cada decisión, aprobada o rechazada, queda en [`reports/promociones.json`](reports/promociones.json) con las reglas evaluadas, las métricas y quién la tomó, y en las etiquetas de la versión en MLflow.
+- **Rollback:** `uv run python -m proyecto_1_esp_data.promocion --aprobador tu-nombre --volver-a <versión>`.
+- La API y la app cargan `models:/clasificador_pm25@champion`; `/health` informa la `version_modelo` que están sirviendo. Sin modelo vigente, la API responde 503.
 
 ## Monitoreo
 
@@ -160,7 +187,8 @@ Los notebooks se guardan **sin salidas** (una prueba falla si no).
 - [`docs/adr/000-stack.md`](docs/adr/000-stack.md): por qué este stack.
 - [`docs/adr/001-python-312.md`](docs/adr/001-python-312.md): decisión revertida (Python 3.15 a 3.12).
 - [`docs/adr/002-prefect.md`](docs/adr/002-prefect.md): cómo y por qué se orquesta con Prefect.
-- [`docs/adr/003-joblib-en-vez-de-mlflow.md`](docs/adr/003-joblib-en-vez-de-mlflow.md): por qué el modelo se guarda con joblib y no con MLflow.
+- [`docs/adr/003-joblib-en-vez-de-mlflow.md`](docs/adr/003-joblib-en-vez-de-mlflow.md): decisión revertida (joblib en lugar de MLflow).
+- [`docs/adr/004-mlflow-local-y-compuerta.md`](docs/adr/004-mlflow-local-y-compuerta.md): MLflow local y compuerta de promoción; qué falló con el ADR 003.
 
 ## Estado y pendientes
 
@@ -168,8 +196,8 @@ Lo que no está hecho todavía, dicho con su motivo:
 
 | Pendiente | Motivo |
 |---|---|
-| `make train` reemplaza el modelo sin revisión | Sobrescribe `models/clasificador_pm25.joblib` y no conserva el anterior; falta guardar cada entrenamiento con fecha y huella de datos (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md) y el riesgo 12) |
 | Ficha del modelo (`docs/model-card.md`) | No está escrita; por ahora los resultados y las limitaciones están en este README |
-| Compuerta de promoción (`gate`) | Falta acordar la precisión mínima |
-| Dockerfile y pruebas de la API en CI | La API funciona (`make api`), pero no tiene pruebas propias ni contenedor |
+| Dockerfile | La API funciona (`make api`) y tiene pruebas, pero aún no hay contenedor. La imagen necesita el registro de MLflow (entrenar y promover dentro de la imagen, o montarlo) |
+| Búsqueda estructurada de hiperparámetros | Hoy cada `make train` es una corrida comparable; no hay una búsqueda con 20 o más corridas anidadas |
+| Confirmar `PRECISION_MINIMA` | 0,60 es un valor inicial entre la línea base y LightGBM; el equipo debe confirmarlo |
 | Unidades de los contaminantes | La ficha de UCI no las declara; en la dataset card se asumen µg/m³ por la escala observada y está marcado |

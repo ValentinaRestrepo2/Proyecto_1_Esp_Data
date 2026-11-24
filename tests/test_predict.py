@@ -6,7 +6,6 @@ No usa el modelo de `models/`: en CI no existe, así que cada prueba entrena el 
 
 from pathlib import Path
 
-import joblib
 import pytest
 
 from proyecto_1_esp_data import config, predict
@@ -37,16 +36,13 @@ EJEMPLO = {
 
 
 @pytest.fixture
-def modelo_entrenado(tmp_path, monkeypatch):
-    """Entrena con la muestra, guarda en una carpeta temporal y apunta `predict` ahí."""
+def modelo_entrenado(monkeypatch):
+    """Entrena con la muestra y lo deja en memoria como si fuera el modelo vigente."""
     tabla = prepare.construir_tabla_modelo(prepare.cargar_crudo(MUESTRA))
     pipeline = construir_pipeline().fit(tabla[COLUMNAS_X], tabla[TARGET])
-
-    ruta = tmp_path / "modelo.joblib"
-    joblib.dump(pipeline, ruta)
-    monkeypatch.setattr(config, "MODELO_PATH", ruta)
-    monkeypatch.setattr(predict, "_pipeline", None)  # sin caché de otra prueba
-    return ruta
+    monkeypatch.setattr(predict, "_pipeline", pipeline)
+    monkeypatch.setattr(predict, "_version", "1")
+    return pipeline
 
 
 def test_prediccion_de_punta_a_punta(modelo_entrenado):
@@ -75,8 +71,15 @@ def test_prediccion_rechaza_columnas_faltantes(modelo_entrenado):
         predict.predecir(datos)
 
 
-def test_sin_modelo_avisa_que_hay_que_entrenar(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "MODELO_PATH", tmp_path / "no_existe.joblib")
+def test_sin_modelo_vigente_avisa_que_hay_que_entrenar_y_promover(
+    tmp_path, monkeypatch
+):
+    """Con un registro vacío (sin alias champion) no hay nada que servir."""
+    monkeypatch.setenv(
+        "MLFLOW_TRACKING_URI", f"sqlite:///{(tmp_path / 'vacio.db').as_posix()}"
+    )
     monkeypatch.setattr(predict, "_pipeline", None)
-    with pytest.raises(FileNotFoundError, match="make train"):
+    monkeypatch.setattr(predict, "_version", None)
+    with pytest.raises(FileNotFoundError, match="make train.*make promote"):
         predict.predecir(EJEMPLO)
+    assert predict.modelo_disponible() is False
