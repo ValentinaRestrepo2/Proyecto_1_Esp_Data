@@ -39,3 +39,8 @@ htmlcov/
 .env
 *.local
 .prefect_cache/
+
+# MLflow local (registro de experimentos y modelos)
+mlflow.db
+mlruns/
+mlartifacts/

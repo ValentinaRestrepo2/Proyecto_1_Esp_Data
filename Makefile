@@ -39,24 +39,29 @@ serve:
 
 
 # --- Modelo y apps ---------------------------------------------------------------
-# `make train` descarga los datos solo si faltan y luego entrena; `make app` y
-# `make api` entrenan solo si todavía no hay modelo guardado.
+# `make train` descarga los datos si faltan y registra un CANDIDATO en MLflow: no cambia
+# el modelo vigente. `make promote` lo pasa por la compuerta de promoción. `make app` y
+# `make api` sirven el modelo vigente (alias champion); si no hay, avisan que corras
+# primero `make train` y `make promote`.
 DATOS := data/raw/calidad_aire_beijing.csv
-MODELO := models/clasificador_pm25.joblib
 
 $(DATOS):
 	uv run python -m proyecto_1_esp_data.data.download
 
-$(MODELO): $(DATOS)
-	uv run python -m proyecto_1_esp_data.train
-
 train: $(DATOS)
 	uv run python -m proyecto_1_esp_data.train
 
-app: $(MODELO)
+promote:
+	@test -n "$(APROBADOR)" || (echo "Usa: make promote APROBADOR=tu-nombre" && exit 1)
+	uv run python -m proyecto_1_esp_data.promocion --aprobador "$(APROBADOR)"
+
+mlflow-ui:
+	uv run mlflow ui --backend-store-uri sqlite:///mlflow.db
+
+app:
 	uv run streamlit run app/streamlit_app.py
 
-api: $(MODELO)
+api:
 	uv run uvicorn app.api_fastapi:app --reload
 
-.PHONY: train app api
+.PHONY: train promote mlflow-ui app api

@@ -100,8 +100,24 @@ PIPELINE_CRON = "0 6 1 1,4,7,10 *"
 PIPELINE_ZONA_HORARIA = "America/Bogota"
 
 # Modelo y decisión
-MODELO_PATH = Path("models") / "clasificador_pm25.joblib"
 UMBRAL_DECISION = 0.5
+
+# --- Registro de experimentos y modelos (MLflow local, sin servidor) -------------------
+# SQLite en la raíz del repositorio (no se versiona). Se puede cambiar con la variable
+# de entorno MLFLOW_TRACKING_URI, que tiene prioridad (las pruebas la usan).
+MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
+MLFLOW_EXPERIMENTO = "calidad-aire-pm25"
+MODELO_REGISTRADO = "clasificador_pm25"
+# Alias, no `stages` (deprecados): `candidate` es lo que dejó el último entrenamiento;
+# `champion` es el modelo vigente, el que cargan la API y la app. Solo la compuerta de
+# promoción (`promocion.py`) mueve `champion`; `make train` nunca lo toca.
+ALIAS_CANDIDATO = "candidate"
+ALIAS_VIGENTE = "champion"
+# Precisión mínima del candidato en validación, para que la sensibilidad no se logre
+# avisando todos los días. Valor INICIAL: queda entre la línea base (0,643) y LightGBM
+# (0,684) en validación; el equipo debe confirmarlo (ver docs/politica-de-reentrenamiento.md).
+PRECISION_MINIMA = 0.60
+REPORTE_PROMOCIONES = REPORTES / "promociones.json"
 
 # Catálogos para las apps
 ESTACIONES = [
