@@ -12,12 +12,9 @@ MUESTRA = Path(__file__).parent / "fixtures" / "muestra_beijing.csv"
 
 
 @pytest.fixture
-def registro_temporal(tmp_path, monkeypatch):
+def registro_temporal(registro_aislado):
     """Registro vacío en una carpeta temporal (la base y los artefactos quedan ahí)."""
-    monkeypatch.chdir(tmp_path)  # los artefactos de MLflow van a ./mlruns
-    monkeypatch.setenv(
-        "MLFLOW_TRACKING_URI", f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}"
-    )
+    return registro_aislado
 
 
 @pytest.fixture
