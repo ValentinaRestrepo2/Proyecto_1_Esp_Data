@@ -64,4 +64,7 @@ app:
 api:
 	uv run uvicorn app.api_fastapi:app --reload
 
-.PHONY: train promote mlflow-ui app api
+.PHONY: train promote mlflow-ui model-card app api
+
+model-card:
+	uv run python -m proyecto_1_esp_data.model_card
