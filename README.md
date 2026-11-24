@@ -61,9 +61,23 @@ Salen de `reports/candidato.json` (pipeline con `--modelo lightgbm`); los de la 
 
 Requisitos: [Git](https://git-scm.com/) y [uv](https://docs.astral.sh/uv/). `uv` instala Python 3.12 por su cuenta.
 
+**Flujo mínimo** (de cero a una predicción):
+
 ```
 git clone https://github.com/ValentinaRestrepo2/Proyecto_1_Esp_Data.git
 cd Proyecto_1_Esp_Data
+make setup                          # instala dependencias desde uv.lock
+make train                          # descarga los datos y entrena; deja un CANDIDATO
+make promote APROBADOR=tu-nombre    # sin este paso no hay modelo vigente y la API responde 503
+make test                           # pruebas
+make api                            # API en http://127.0.0.1:8000/docs (o `make app` para Streamlit)
+```
+
+`make train` solo registra un candidato; `make promote` lo pasa por la compuerta y, si cumple las reglas, lo deja como modelo vigente (ver [Registro de modelos y promoción](#registro-de-modelos-y-promoción)). El tiempo de `make setup` y de la descarga depende de la red.
+
+**Todos los comandos:**
+
+```
 make setup      # instala dependencias desde uv.lock
 make data       # descarga y une los datos (unos 34 MB, no se versionan)
 make smoke      # diagnostica el entorno: sale con código 1 si algo falta

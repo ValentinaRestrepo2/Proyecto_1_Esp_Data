@@ -76,27 +76,45 @@ def test_la_decision_lista_todas_las_reglas_evaluadas():
 # --- Con MLflow (registro temporal) ----------------------------------------------------
 
 
-@pytest.fixture
-def dos_candidatos(tmp_path, monkeypatch):
-    """Entrena dos veces con la muestra y controla las métricas que ve la compuerta.
+@pytest.fixture(scope="session")
+def plantilla_dos_candidatos(base_mlflow_migrada, copiar_base, tmp_path_factory):
+    """Entrena dos candidatos UNA vez por sesión (es lo más caro de estas pruebas).
 
-    Con 20 filas las métricas reales no dicen nada, así que se fijan: la versión 1 es
-    buena y la 2 es idéntica. Lo que se prueba es el registro, los alias y el historial.
+    Devuelve (base de datos, versiones). Cada prueba trabaja sobre una copia de la base;
+    los artefactos del modelo se quedan aquí y solo se leen, porque las pruebas de la
+    compuerta cambian alias y etiquetas (que viven en la base), no los artefactos.
     """
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv(
-        "MLFLOW_TRACKING_URI", f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}"
-    )
+    carpeta = tmp_path_factory.mktemp("dos_candidatos")
+    base = carpeta / "mlflow.db"
+    copiar_base(base_mlflow_migrada, base)
     tabla = prepare.construir_tabla_modelo(prepare.cargar_crudo(MUESTRA))
     partes = {
         "train": tabla.iloc[:10],
         "val": tabla.iloc[10:15],
         "produccion": tabla.iloc[15:],
     }
-    versiones = [
-        train.entrenar_y_registrar(partes, f"h{i}", verbose=False)["version"]
-        for i in (1, 2)
-    ]
+    with pytest.MonkeyPatch.context() as mp:
+        mp.chdir(carpeta)
+        mp.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{base.as_posix()}")
+        versiones = [
+            train.entrenar_y_registrar(partes, f"h{i}", verbose=False)["version"]
+            for i in (1, 2)
+        ]
+    return base, versiones
+
+
+@pytest.fixture
+def dos_candidatos(plantilla_dos_candidatos, copiar_base, tmp_path, monkeypatch):
+    """Dos candidatos registrados y las métricas que ve la compuerta, controladas.
+
+    Con 20 filas las métricas reales no dicen nada, así que se fijan: la versión 1 es
+    buena y la 2 es idéntica. Lo que se prueba es el registro, los alias y el historial.
+    """
+    base, versiones = plantilla_dos_candidatos
+    destino = tmp_path / "mlflow.db"
+    copiar_base(base, destino)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{destino.as_posix()}")
     fijas = {
         "modelo": metricas(0.74, 0.65, precision_val=0.68),
         "linea_base": BASE,
@@ -162,11 +180,8 @@ def test_rollback_devuelve_el_vigente_a_una_version_anterior(dos_candidatos):
     assert str(registro.version_por_alias(client, config.ALIAS_VIGENTE).version) == v1
 
 
-def test_sin_candidato_pide_entrenar_primero(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv(
-        "MLFLOW_TRACKING_URI", f"sqlite:///{(tmp_path / 'vacio.db').as_posix()}"
-    )
+def test_sin_candidato_pide_entrenar_primero(registro_aislado):
+    tmp_path = registro_aislado
     with pytest.raises(LookupError, match="make train"):
         promocion.promover("Santiago", ruta_reporte=tmp_path / "p.json")
 

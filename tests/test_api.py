@@ -44,11 +44,8 @@ def con_modelo(monkeypatch):
 
 
 @pytest.fixture
-def sin_modelo(tmp_path, monkeypatch):
+def sin_modelo(registro_aislado, monkeypatch):
     """Registro vacío (sin alias champion), para probar el error 503."""
-    monkeypatch.setenv(
-        "MLFLOW_TRACKING_URI", f"sqlite:///{(tmp_path / 'vacio.db').as_posix()}"
-    )
     monkeypatch.setattr(predict, "_pipeline", None)
     monkeypatch.setattr(predict, "_version", None)
     return TestClient(app)
