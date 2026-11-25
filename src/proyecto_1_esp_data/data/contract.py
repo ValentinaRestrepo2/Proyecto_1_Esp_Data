@@ -19,7 +19,6 @@ from __future__ import annotations
 import pandas as pd
 
 from proyecto_1_esp_data import config
-from proyecto_1_esp_data.data import prepare
 
 COLUMNAS_TIEMPO = ["year", "month", "day", "hour"]
 COLUMNAS_OBLIGATORIAS = [
@@ -139,7 +138,7 @@ COLUMNAS_PROCESADO = [
     "horas_pm25",
     "estacion_ano",
     "wd",
-    *config.DRIFT_COLUMNAS_NUM,
+    *config.COLUMNAS_NUM_DIARIAS,
 ]
 
 
@@ -216,7 +215,7 @@ def validar_procesado(tabla: pd.DataFrame) -> list[str]:
     if not pm.between(lo, hi).all():
         problemas.append(f"pm25 fuera de [{lo}, {hi}]")
 
-    mes_a_estacion = tabla["fecha"].dt.month.map(prepare.ESTACION_DEL_ANO)
+    mes_a_estacion = tabla["fecha"].dt.month.map(config.ESTACION_DEL_ANO)
     if (mes_a_estacion != tabla["estacion_ano"]).any():
         problemas.append("estacion_ano no coincide con el mes de la fecha")
 

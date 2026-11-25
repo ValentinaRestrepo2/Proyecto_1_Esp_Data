@@ -80,3 +80,28 @@ def test_sin_modelo_avisa_que_hay_que_entrenar(tmp_path, monkeypatch):
     monkeypatch.setattr(predict, "_pipeline", None)
     with pytest.raises(FileNotFoundError, match="make train"):
         predict.predecir(EJEMPLO)
+
+
+def _resultado(p, mala):
+    return {
+        "probabilidad_pm25_mala_manana": p,
+        "mala_calidad_manana": mala,
+        "umbral_pm25": config.UMBRAL_PM25,
+    }
+
+
+@pytest.mark.parametrize(
+    ("p", "mala", "nivel"),
+    [
+        (0.90, True, "alto"),
+        (0.60, True, "alto"),
+        (0.36, False, "moderado"),
+        (0.35, False, "moderado"),
+        (0.34, False, "aceptable"),
+        (0.05, False, "aceptable"),
+    ],
+)
+def test_clasificar_riesgo_por_umbral(p, mala, nivel):
+    riesgo = predict.clasificar_riesgo(_resultado(p, mala))
+    assert riesgo["nivel"] == nivel
+    assert riesgo["etiqueta"] == predict.ETIQUETAS_NIVEL[nivel]

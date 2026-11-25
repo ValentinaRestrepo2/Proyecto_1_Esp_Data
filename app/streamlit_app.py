@@ -1,7 +1,7 @@
 import streamlit as st
 
 from proyecto_1_esp_data import config
-from proyecto_1_esp_data.predict import predecir
+from proyecto_1_esp_data.predict import clasificar_riesgo, predecir
 
 st.set_page_config(
     page_title="Calidad del aire · Beijing",
@@ -85,19 +85,22 @@ def titulo(texto: str) -> None:
     st.markdown(f'<div class="seccion">{texto}</div>', unsafe_allow_html=True)
 
 
+COLORES_NIVEL = {
+    "alto": "#b91c1c",
+    "moderado": "#b45309",
+    "aceptable": "#15803d",
+}
+
+
 def mostrar_resultado(r: dict, estacion: str) -> None:
     p = r["probabilidad_pm25_mala_manana"]
-    if r["mala_calidad_manana"]:
-        etiqueta, color = "Mala calidad anticipada", "#b91c1c"
-    elif p >= 0.35:
-        etiqueta, color = "Vigilar: riesgo moderado", "#b45309"
-    else:
-        etiqueta, color = "Calidad aceptable", "#15803d"
+    riesgo = clasificar_riesgo(r)
+    color = COLORES_NIVEL[riesgo["nivel"]]
 
     st.markdown(
         f'<div class="tarjeta centrada">'
         f'<div class="pct" style="color:{color}">{p:.0%}</div>'
-        f'<div class="nivel" style="color:{color}">{etiqueta}</div>'
+        f'<div class="nivel" style="color:{color}">{riesgo["etiqueta"]}</div>'
         f'<p class="texto">Probabilidad de que mañana el PM2.5 supere '
         f"{config.UMBRAL_PM25:.0f} µg/m³ en la estación <b>{estacion}</b>.</p>"
         f"</div>",
