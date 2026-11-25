@@ -139,7 +139,7 @@ COLUMNAS_PROCESADO = [
     "horas_pm25",
     "estacion_ano",
     "wd",
-    *config.DRIFT_COLUMNAS_NUM,
+    *config.COLUMNAS_NUM_DIARIAS,
 ]
 
 

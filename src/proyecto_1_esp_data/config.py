@@ -32,11 +32,6 @@ VAL_FIN = "2015-12-31"
 PRODUCCION_INICIO = "2016-01-01"
 PRODUCCION_FIN = "2017-02-28"
 
-# Ventanas para comparar drift: dos ventanas de 12 meses completos, así la
-# estacionalidad (invierno vs verano) no se confunde con drift real.
-DRIFT_REFERENCIA = (VAL_INICIO, VAL_FIN)
-DRIFT_ACTUAL = ("2016-01-01", "2016-12-31")
-
 # --- Contrato de datos ------------------------------------------------------------
 ESTACIONES_ESPERADAS = 12
 FILAS_POR_ESTACION = 35_064  # 1.461 días x 24 h (2013-03-01 a 2017-02-28)
@@ -67,37 +62,12 @@ MAX_FRACCION_NULOS = 0.10  # por columna, sobre el dataset completo
 # filas lo incumplen por ruido del sensor: se tolera hasta este porcentaje.
 MAX_FRACCION_PM10_MENOR_PM25 = 0.10
 
-# --- Monitoreo de drift (Evidently) -----------------------------------------------
-REPORTES = Path("reports")
-DRIFT_COLUMNAS_NUM = [
+# --- Tabla diaria -----------------------------------------------------------------
+# Columnas numéricas de la tabla diaria (las usa el contrato de datos procesados).
+COLUMNAS_NUM_DIARIAS = [
     "pm25", "PM10", "SO2", "NO2", "CO", "O3",
     "TEMP", "PRES", "DEWP", "RAIN", "WSPM", "pm25_lag1", "pm25_lag2",
 ]  # fmt: skip
-DRIFT_COLUMNAS_CAT = ["wd", "station", "estacion_ano", "target"]
-# Una columna tiene drift si su distancia entre ventanas supera este valor
-# (Wasserstein normalizada en numéricas, Jensen-Shannon en categóricas).
-# 0.1 es el valor por defecto de Evidently; se conserva porque las ventanas de
-# 12 meses ya neutralizan la estacionalidad.
-DRIFT_UMBRAL_COLUMNA = 0.1
-# Se declara drift del dataset si al menos esta proporción de columnas lo tiene.
-# Medido en los datos: entre años consecutivos la proporción varía de 0,18 a 0,65,
-# así que el drift es una ALERTA que se revisa, nunca un reentrenamiento automático
-# (ver docs/politica-de-reentrenamiento.md).
-DRIFT_UMBRAL_COMPARTIDO = 0.5
-
-# --- Pipeline (Prefect) -----------------------------------------------------------
-CACHE_PREFECT = Path(".prefect_cache")  # resultados cacheados; no se versiona
-# Reintentos de la descarga (única tarea de I/O de red). Solo se reintentan errores de
-# red; un hash o volumen distintos NO se reintentan, porque reintentar no los arregla.
-DESCARGA_REINTENTOS = 3
-# Espera de 10 s, 20 s, 40 s...: el backoff exponencial da tiempo a que el servidor
-# de UCI se recupere en vez de insistir cada segundo, que es lo que lo mantiene caído.
-DESCARGA_BACKOFF_SEGUNDOS = 10
-# Una ejecución cada trimestre (1 de enero, abril, julio y octubre, 6:00): coincide con
-# la frecuencia de la política de reentrenamiento. NO reentrena el modelo completo cada
-# pocos minutos ni promueve nada: genera un candidato y el reporte de drift para revisar.
-PIPELINE_CRON = "0 6 1 1,4,7,10 *"
-PIPELINE_ZONA_HORARIA = "America/Bogota"
 
 # Modelo y decisión
 MODELO_PATH = Path("models") / "clasificador_pm25.joblib"
