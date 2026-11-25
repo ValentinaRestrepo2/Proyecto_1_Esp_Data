@@ -1,6 +1,6 @@
 # Predicción de días con mala calidad del aire en Beijing
 
-Proyecto final de MLOps (Universidad de Medellín). Predice, para cada estación de monitoreo, si **mañana el promedio de PM2.5 superará 75 µg/m³**, con datos horarios reales de 12 estaciones de Beijing (2013-2017).
+Proyecto 1 (Universidad de Medellín). El objetivo es crear un predictor de días con mala calidad del aire en Beijing: para cada estación de monitoreo, predice si **mañana el promedio de PM2.5 superará 75 µg/m³**, con datos horarios reales de 12 estaciones (2013-2017).
 
 El foco del proyecto es el **ciclo de vida** (datos validados, split sin fuga, reproducibilidad), no la calidad del modelo.
 
