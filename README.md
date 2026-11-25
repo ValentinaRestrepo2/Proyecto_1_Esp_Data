@@ -61,33 +61,16 @@ Salen de `reports/candidato.json` (pipeline con `--modelo lightgbm`); los de la 
 
 Requisitos: [Git](https://git-scm.com/) y [uv](https://docs.astral.sh/uv/). `uv` instala Python 3.12 por su cuenta.
 
-**Flujo mínimo** (de cero a una predicción):
-
 ```
 git clone https://github.com/ValentinaRestrepo2/Proyecto_1_Esp_Data.git
 cd Proyecto_1_Esp_Data
-make setup                          # instala dependencias desde uv.lock
-make train                          # descarga los datos y entrena; deja un CANDIDATO
-make promote APROBADOR=tu-nombre    # sin este paso no hay modelo vigente y la API responde 503
-make test                           # pruebas
-make api                            # API en http://127.0.0.1:8000/docs (o `make app` para Streamlit)
-```
-
-`make train` solo registra un candidato; `make promote` lo pasa por la compuerta y, si cumple las reglas, lo deja como modelo vigente (ver [Registro de modelos y promoción](#registro-de-modelos-y-promoción)). El tiempo de `make setup` y de la descarga depende de la red.
-
-**Todos los comandos:**
-
-```
 make setup      # instala dependencias desde uv.lock
 make data       # descarga y une los datos (unos 34 MB, no se versionan)
 make smoke      # diagnostica el entorno: sale con código 1 si algo falta
-make train      # entrena y registra un CANDIDATO en MLflow (descarga los datos si faltan)
-make promote APROBADOR=tu-nombre   # la compuerta decide si el candidato pasa a ser el modelo vigente
-make model-card # regenera docs/model-card.md desde los reportes
+make train      # entrena el modelo y muestra métricas (descarga los datos si faltan)
 make test       # pruebas
-make app        # abre la app de Streamlit (necesita un modelo vigente: make train y make promote)
-make api        # levanta la API (necesita un modelo vigente); documentación en http://127.0.0.1:8000/docs
-make mlflow-ui  # interfaz de MLflow para comparar corridas y ver el registro
+make app        # abre la app de Streamlit (entrena si no hay modelo)
+make api        # levanta la API; documentación en http://127.0.0.1:8000/docs
 make drift      # genera el reporte de drift en reports/
 make pipeline   # corre el pipeline completo (Prefect) de punta a punta
 ```
@@ -100,9 +83,6 @@ make pipeline   # corre el pipeline completo (Prefect) de punta a punta
 | `make data` | `uv run python -m proyecto_1_esp_data.data.download` |
 | `make smoke` | `uv run python -m proyecto_1_esp_data.smoke` |
 | `make train` | `uv run python -m proyecto_1_esp_data.train` |
-| `make promote APROBADOR=nombre` | `uv run python -m proyecto_1_esp_data.promocion --aprobador nombre` |
-| `make model-card` | `uv run python -m proyecto_1_esp_data.model_card` |
-| `make mlflow-ui` | `uv run mlflow ui --backend-store-uri sqlite:///mlflow.db` |
 | `make test` | `uv run pytest` |
 | `make app` | `uv run streamlit run app/streamlit_app.py` |
 | `make api` | `uv run uvicorn app.api_fastapi:app --reload` |
@@ -136,21 +116,13 @@ src/proyecto_1_esp_data/
   data/download.py     descarga reproducible con hash
   data/contract.py     contrato de datos (rangos, relaciones, volumen)
   data/prepare.py      tabla diaria, target, split temporal y línea base
-  features.py          variables de entrada y preprocesamiento
-  model.py             pipeline: preprocesamiento + LightGBM
-  train.py             entrena y registra un candidato en MLflow (no promueve)
-  registro.py          conexión al registro de MLflow, alias y lectura de métricas
-  promocion.py         compuerta de promoción y rollback
-  model_card.py        genera docs/model-card.md desde los reportes
-  predict.py           carga el modelo vigente (alias champion) y predice
   pipeline/flow.py     pipeline de Prefect (reintentos, caché, schedule)
   pipeline/entrenadores.py  un entrenador por modelo: línea base y LightGBM
   monitoring/drift.py  reporte de drift con Evidently
-app/                   API (FastAPI) y app (Streamlit)
-tests/                 pruebas (datos, modelo, registro, API, monitoreo, notebooks, smoke)
+tests/                 pruebas (datos, monitoreo, notebooks, smoke)
 notebooks/01_eda.ipynb análisis exploratorio (sin salidas)
-docs/                  model card, contrato de la API, dataset card, política, riesgos, ADRs
-reports/               reporte de drift, candidato del pipeline e historial de promociones
+docs/                  dataset card, política de reentrenamiento, riesgos, ADRs
+reports/               reporte de drift (HTML) y su resumen (JSON)
 ```
 
 ## Pipeline
@@ -159,40 +131,11 @@ reports/               reporte de drift, candidato del pipeline e historial de p
 
 - **Reintentos:** solo en la descarga (la única tarea con red), 3 intentos con espera exponencial de 10 s, 20 s, 40 s y jitter. Solo se reintentan errores de red: un hash distinto o un contrato roto no se arreglan reintentando, así que fallan de inmediato.
 - **Caché:** en las dos tareas costosas (tabla diaria y drift). La llave combina el hash SHA-256 del CSV, los umbrales de `config.py` y el código fuente del módulo: cambia cualquiera y se recalcula.
-- **Caché medido** (`make pipeline-cache`, datos reales, en un portátil con Windows): primera ejecución 10,6 s, segunda 3,77 s, aceleración de unas **2,8 veces**. Recalcular en otra máquina da otros segundos; lo que se conserva es la proporción.
+- **Caché medido** (`make pipeline-cache`, datos reales, 3 mediciones en un entorno de 1 CPU): primera ejecución 2,9 a 3,1 s, segunda 0,8 a 0,9 s, aceleración de **3,2 a 3,4 veces**. Recalcular en tu máquina da otros segundos; lo que se conserva es la proporción.
 - **Artifacts:** tabla de métricas (modelo y línea base, en validación y producción) y resumen de drift, visibles en la interfaz de Prefect.
 - **Schedule:** `make serve` deja el flujo corriendo con el deployment `calidad-aire-trimestral` (cron `0 6 1 1,4,7,10 *`, zona `America/Bogota`): una vez por trimestre, igual que la política de reentrenamiento.
-- **No promueve.** Registra `reports/candidato.json` con `promovido: false`. El modelo vigente solo lo cambia la compuerta de promoción (ver la sección siguiente).
+- **No promueve.** Registra `reports/candidato.json` con `promovido: false`. Reemplazar el modelo vigente (`models/clasificador_pm25.joblib`) es decisión de una persona. No hay registro de modelos ni alias `@champion`: el modelo se guarda con joblib (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md)).
 - El modelo se elige con `--modelo`: `baseline` ("mañana = hoy", el valor por defecto) o `lightgbm`. Para registrar el modelo real: `uv run python -m proyecto_1_esp_data.pipeline.flow --modelo lightgbm`. Otro modelo se agrega con una función en `pipeline/entrenadores.py`.
-
-## Registro de modelos y promoción
-
-El registro es **MLflow local** (base `mlflow.db` y carpeta `mlruns/`, ignoradas por Git; ver [ADR 004](docs/adr/004-mlflow-local-y-compuerta.md)). El camino de un modelo es siempre el mismo:
-
-```
-make train                          # registra un candidato (alias candidate): parámetros, métricas, hash de datos, firma
-make promote APROBADOR=tu-nombre    # la compuerta lo compara y, si cumple, mueve el alias champion
-make mlflow-ui                      # abre la interfaz para ver y comparar corridas (http://127.0.0.1:5000)
-```
-
-- `make train` **nunca** cambia el modelo vigente. El modelo registrado es el pipeline completo (el preprocesamiento va dentro del artefacto).
-- La compuerta promueve solo si el candidato supera a la línea base en sensibilidad (en validación y en producción simulada), alcanza la precisión mínima (`PRECISION_MINIMA`, 0,60, valor inicial) y supera estrictamente al modelo vigente.
-- Cada decisión, aprobada o rechazada, queda en [`reports/promociones.json`](reports/promociones.json) con las reglas evaluadas, las métricas y quién la tomó, y en las etiquetas de la versión en MLflow.
-- **Rollback:** `uv run python -m proyecto_1_esp_data.promocion --aprobador tu-nombre --volver-a <versión>`.
-- La API y la app cargan `models:/clasificador_pm25@champion`; `/health` informa la `version_modelo` que están sirviendo. Sin modelo vigente, la API responde 503.
-
-## Contenedor (Docker)
-
-La imagen se construye con el `Dockerfile` (multi-stage, usuario sin root, healthcheck). Durante el build descarga los datos, entrena y pasa el candidato por la compuerta de promoción: si la compuerta lo rechaza, el build falla y no queda una imagen con un modelo no aprobado.
-
-```bash
-docker build -t calidad-aire .
-docker run --rm -p 8000:8000 calidad-aire
-# en otra terminal:
-curl http://localhost:8000/health
-```
-
-El build necesita internet (descarga el dataset de UCI y verifica su hash). Para cambiar quién figura como aprobador en el historial: `docker build --build-arg APROBADOR=su_nombre -t calidad-aire .`
 
 ## Monitoreo
 
@@ -211,16 +154,13 @@ Los notebooks se guardan **sin salidas** (una prueba falla si no).
 
 ## Documentación
 
-- [`docs/model-card.md`](docs/model-card.md): ficha del modelo (uso previsto, rendimiento, aprobación y límites). Se regenera con `make model-card`.
-- [`docs/api-contract.md`](docs/api-contract.md): contrato de la API (entradas, respuestas y errores).
 - [`docs/dataset-card.md`](docs/dataset-card.md): procedencia, licencia, nulos, límites y riesgos de fuga de datos.
 - [`docs/politica-de-reentrenamiento.md`](docs/politica-de-reentrenamiento.md): señales, umbrales y quién decide.
 - [`docs/riesgos.md`](docs/riesgos.md): riesgos técnicos y de uso.
 - [`docs/adr/000-stack.md`](docs/adr/000-stack.md): por qué este stack.
 - [`docs/adr/001-python-312.md`](docs/adr/001-python-312.md): decisión revertida (Python 3.15 a 3.12).
 - [`docs/adr/002-prefect.md`](docs/adr/002-prefect.md): cómo y por qué se orquesta con Prefect.
-- [`docs/adr/003-joblib-en-vez-de-mlflow.md`](docs/adr/003-joblib-en-vez-de-mlflow.md): decisión revertida (joblib en lugar de MLflow).
-- [`docs/adr/004-mlflow-local-y-compuerta.md`](docs/adr/004-mlflow-local-y-compuerta.md): MLflow local y compuerta de promoción; qué falló con el ADR 003.
+- [`docs/adr/003-joblib-en-vez-de-mlflow.md`](docs/adr/003-joblib-en-vez-de-mlflow.md): por qué el modelo se guarda con joblib y no con MLflow.
 
 ## Estado y pendientes
 
@@ -228,6 +168,8 @@ Lo que no está hecho todavía, dicho con su motivo:
 
 | Pendiente | Motivo |
 |---|---|
-| Búsqueda estructurada de hiperparámetros | Hoy cada `make train` es una corrida comparable; no hay una búsqueda con 20 o más corridas anidadas |
-| Confirmar `PRECISION_MINIMA` | 0,60 es un valor inicial entre la línea base y LightGBM; el equipo debe confirmarlo |
+| `make train` reemplaza el modelo sin revisión | Sobrescribe `models/clasificador_pm25.joblib` y no conserva el anterior; falta guardar cada entrenamiento con fecha y huella de datos (ver [ADR 003](docs/adr/003-joblib-en-vez-de-mlflow.md) y el riesgo 12) |
+| Ficha del modelo (`docs/model-card.md`) | No está escrita; por ahora los resultados y las limitaciones están en este README |
+| Compuerta de promoción (`gate`) | Falta acordar la precisión mínima |
+| Dockerfile y pruebas de la API en CI | La API funciona (`make api`), pero no tiene pruebas propias ni contenedor |
 | Unidades de los contaminantes | La ficha de UCI no las declara; en la dataset card se asumen µg/m³ por la escala observada y está marcado |

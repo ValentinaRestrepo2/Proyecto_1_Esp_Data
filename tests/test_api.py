@@ -2,11 +2,12 @@
 
 from pathlib import Path
 
+import joblib
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api_fastapi import MENSAJE_SIN_MODELO, app
-from proyecto_1_esp_data import predict
+from app.api_fastapi import app
+from proyecto_1_esp_data import config, predict
 from proyecto_1_esp_data.data import prepare
 from proyecto_1_esp_data.features import COLUMNAS_X, TARGET
 from proyecto_1_esp_data.model import construir_pipeline
@@ -34,38 +35,35 @@ EJEMPLO = {
 
 
 @pytest.fixture
-def con_modelo(monkeypatch):
-    """Se entrena un modelo con la muestra y se deja en memoria como el vigente."""
+def con_modelo(tmp_path, monkeypatch):
+    """Se entrena un modelo con la muestra, se guarda en una carpeta temporal y se usa."""
     tabla = prepare.construir_tabla_modelo(prepare.cargar_crudo(MUESTRA))
     pipeline = construir_pipeline().fit(tabla[COLUMNAS_X], tabla[TARGET])
-    monkeypatch.setattr(predict, "_pipeline", pipeline)
-    monkeypatch.setattr(predict, "_version", "7")
+    ruta = tmp_path / "modelo.joblib"
+    joblib.dump(pipeline, ruta)
+    monkeypatch.setattr(config, "MODELO_PATH", ruta)
+    monkeypatch.setattr(predict, "_pipeline", None)
     return TestClient(app)
 
 
 @pytest.fixture
-def sin_modelo(registro_aislado, monkeypatch):
-    """Registro vacío (sin alias champion), para probar el error 503."""
+def sin_modelo(tmp_path, monkeypatch):
+    """Apunta a una ruta donde no hay modelo, para probar el error 503."""
+    monkeypatch.setattr(config, "MODELO_PATH", tmp_path / "no_existe.joblib")
     monkeypatch.setattr(predict, "_pipeline", None)
-    monkeypatch.setattr(predict, "_version", None)
     return TestClient(app)
 
 
 def test_health_con_modelo(con_modelo):
     r = con_modelo.get("/health")
     assert r.status_code == 200
-    assert r.json() == {
-        "estado": "ok",
-        "modelo_disponible": True,
-        "version_modelo": "7",
-    }
+    assert r.json() == {"estado": "ok", "modelo_disponible": True}
 
 
 def test_health_sin_modelo_lo_reporta(sin_modelo):
     r = sin_modelo.get("/health")
     assert r.status_code == 200
     assert r.json()["modelo_disponible"] is False
-    assert r.json()["version_modelo"] is None
 
 
 def test_predict_responde_200_con_el_contrato(con_modelo):
@@ -92,8 +90,7 @@ def test_predict_rechaza_campo_obligatorio_faltante(con_modelo):
     assert r.status_code == 422
 
 
-def test_predict_sin_modelo_responde_503_con_mensaje_fijo(sin_modelo):
+def test_predict_sin_modelo_responde_503(sin_modelo):
     r = sin_modelo.post("/predict", json=EJEMPLO)
     assert r.status_code == 503
-    # Mensaje fijo: no se devuelve str(e) (podría filtrar rutas o detalles internos)
-    assert r.json()["detail"] == MENSAJE_SIN_MODELO
+    assert "make train" in r.json()["detail"]
