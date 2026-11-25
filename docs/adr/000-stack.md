@@ -14,7 +14,7 @@ El proyecto predice si mañana el PM2.5 de una estación de Beijing superará 75
 | Entorno y dependencias | **uv** con `uv.lock` y Python 3.12 | En uso |
 | Datos | **pandas 2.x** (`<3`, ver ADR 001) | En uso |
 | Modelo | **scikit-learn** para la línea base y el preprocesamiento, **LightGBM** para el modelo candidato | LightGBM pendiente de entrenar |
-| Tracking y registro | **MLflow** local (SQLite), con alias (`@champion`) y no con `stages` (ver [ADR 004](004-mlflow-local-y-compuerta.md)) | En uso |
+| Tracking y registro | **MLflow**, con alias (`@champion`) y no con `stages` | Pendiente |
 | Orquestación | **Prefect 3** (ver [ADR 002](002-prefect.md)) | En uso |
 | Servicio | **FastAPI** + **Docker** | Pendiente |
 | Monitoreo de drift | **Evidently 0.7** | En uso |

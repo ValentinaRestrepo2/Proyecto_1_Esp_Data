@@ -3,11 +3,8 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
-from proyecto_1_esp_data import predict
+from proyecto_1_esp_data import config
 from proyecto_1_esp_data.predict import predecir
-
-MENSAJE_SIN_MODELO = "El modelo no está disponible todavía."
-MENSAJE_ENTRADA_INVALIDA = "Los datos de entrada no son válidos."
 
 EJEMPLO = {
     "pm25": 80.0,
@@ -69,12 +66,9 @@ app = FastAPI(
 
 @app.get("/health", summary="Estado del servicio")
 def salud() -> dict:
-    disponible = predict.modelo_disponible()
     return {
         "estado": "ok",
-        "modelo_disponible": disponible,
-        # Versión del modelo vigente en el registro: permite saber qué está sirviendo
-        "version_modelo": predict.version_modelo(),
+        "modelo_disponible": config.MODELO_PATH.exists(),
     }
 
 
@@ -87,8 +81,7 @@ def predecir_endpoint(entrada: Entrada) -> dict:
     try:
         return predecir(entrada.model_dump())
     except FileNotFoundError as e:
-        # 503: el servicio está arriba, pero aún no hay un modelo vigente. El mensaje
-        # es fijo: str(e) podría filtrar rutas o detalles internos al cliente.
-        raise HTTPException(status_code=503, detail=MENSAJE_SIN_MODELO) from e
+        # 503: el servicio está arriba, pero el modelo aún no está entrenado
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=MENSAJE_ENTRADA_INVALIDA) from e
+        raise HTTPException(status_code=422, detail=str(e)) from e
