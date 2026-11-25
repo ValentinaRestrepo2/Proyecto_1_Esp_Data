@@ -21,6 +21,9 @@ jobs:
       - name: Sincronizar dependencias
         run: uv sync --locked --dev
 
+      - name: Verificar que uv.lock coincide con pyproject.toml
+        run: uv lock --check
+
       - name: Formato (ruff format)
         run: uv run ruff format --check .
 
