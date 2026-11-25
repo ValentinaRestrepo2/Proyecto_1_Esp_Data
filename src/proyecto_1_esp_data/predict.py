@@ -38,3 +38,27 @@ def predecir(datos: dict) -> dict:
         "mala_calidad_manana": p >= config.UMBRAL_DECISION,
         "umbral_pm25": config.UMBRAL_PM25,
     }
+
+
+ETIQUETAS_NIVEL = {
+    "alto": "Mala calidad anticipada",
+    "moderado": "Vigilar: riesgo moderado",
+    "aceptable": "Calidad aceptable",
+}
+
+
+def clasificar_riesgo(resultado: dict) -> dict:
+    """Convierte la predicción en un nivel de riesgo para mostrar al usuario.
+
+    Regla de negocio, aquí y no en la app:
+    - `alto`: el modelo predice día malo (probabilidad >= UMBRAL_DECISION).
+    - `moderado`: no es día malo, pero la probabilidad alcanza UMBRAL_VIGILANCIA.
+    - `aceptable`: el resto.
+    """
+    if resultado["mala_calidad_manana"]:
+        nivel = "alto"
+    elif resultado["probabilidad_pm25_mala_manana"] >= config.UMBRAL_VIGILANCIA:
+        nivel = "moderado"
+    else:
+        nivel = "aceptable"
+    return {"nivel": nivel, "etiqueta": ETIQUETAS_NIVEL[nivel]}

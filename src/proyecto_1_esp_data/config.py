@@ -79,6 +79,7 @@ COLUMNAS_NUM_DIARIAS = [
 # Modelo y decisión
 MODELO_PATH = Path("models") / "clasificador_pm25.joblib"
 UMBRAL_DECISION = 0.5
+UMBRAL_VIGILANCIA = 0.35
 
 # Estación del año por mes: única definición. La lista de estaciones sale de aquí.
 ESTACION_DEL_ANO = {
