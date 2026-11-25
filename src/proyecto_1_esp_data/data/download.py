@@ -22,11 +22,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from proyecto_1_esp_data import config
+
 URL = "https://archive.ics.uci.edu/static/public/501/beijing+multi+site+air+quality+data.zip"
 FICHA = "https://archive.ics.uci.edu/dataset/501"
 LICENCIA = "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/legalcode)"
-ESTACIONES_ESPERADAS = 12
-FILAS_ESPERADAS = 420_768  # 12 estaciones x 35.064 horas
+ESTACIONES_ESPERADAS = config.ESTACIONES_ESPERADAS
+FILAS_ESPERADAS = config.FILAS_ESPERADAS
 ARCHIVO_CSV = "calidad_aire_beijing.csv"
 ARCHIVO_METADATA = "metadata.json"
 

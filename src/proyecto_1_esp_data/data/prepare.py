@@ -20,20 +20,6 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 from proyecto_1_esp_data import config
 
 COLUMNAS_DIARIAS = [*config.COLUMNAS_CONTAMINANTES, *config.COLUMNAS_METEO]
-ESTACION_DEL_ANO = {
-    12: "invierno",
-    1: "invierno",
-    2: "invierno",
-    3: "primavera",
-    4: "primavera",
-    5: "primavera",
-    6: "verano",
-    7: "verano",
-    8: "verano",
-    9: "otono",
-    10: "otono",
-    11: "otono",
-}
 
 
 def cargar_crudo(ruta=config.CSV_CRUDO) -> pd.DataFrame:
@@ -96,7 +82,7 @@ def agregar_target_y_features(diaria: pd.DataFrame) -> pd.DataFrame:
         (t["pm25"] > config.UMBRAL_PM25).astype("float").where(t["pm25"].notna())
     )
     t["fecha_objetivo"] = t["fecha"] + pd.Timedelta(days=1)
-    t["estacion_ano"] = t["fecha"].dt.month.map(ESTACION_DEL_ANO)
+    t["estacion_ano"] = t["fecha"].dt.month.map(config.ESTACION_DEL_ANO)
 
     t = t[t["pm25_manana"].notna()].copy()
     t["target"] = (t["pm25_manana"] > config.UMBRAL_PM25).astype(int)

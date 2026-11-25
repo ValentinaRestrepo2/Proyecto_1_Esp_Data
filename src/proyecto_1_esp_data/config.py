@@ -33,8 +33,15 @@ PRODUCCION_INICIO = "2016-01-01"
 PRODUCCION_FIN = "2017-02-28"
 
 # --- Contrato de datos ------------------------------------------------------------
-ESTACIONES_ESPERADAS = 12
+# Estaciones: única lista del proyecto. La usan el contrato, la descarga y las apps.
+# Una prueba verifica que coincida con las estaciones de data/raw/metadata.json.
+ESTACIONES = [
+    "Aotizhongxin", "Changping", "Dingling", "Dongsi", "Guanyuan", "Gucheng",
+    "Huairou", "Nongzhanguan", "Shunyi", "Tiantan", "Wanliu", "Wanshouxigong",
+]  # fmt: skip
+ESTACIONES_ESPERADAS = len(ESTACIONES)
 FILAS_POR_ESTACION = 35_064  # 1.461 días x 24 h (2013-03-01 a 2017-02-28)
+FILAS_ESPERADAS = ESTACIONES_ESPERADAS * FILAS_POR_ESTACION
 COLUMNAS_CONTAMINANTES = ["PM2.5", "PM10", "SO2", "NO2", "CO", "O3"]
 COLUMNAS_METEO = ["TEMP", "PRES", "DEWP", "RAIN", "WSPM"]
 DIRECCIONES_VIENTO = [
@@ -73,9 +80,11 @@ COLUMNAS_NUM_DIARIAS = [
 MODELO_PATH = Path("models") / "clasificador_pm25.joblib"
 UMBRAL_DECISION = 0.5
 
-# Catálogos para las apps
-ESTACIONES = [
-    "Aotizhongxin", "Changping", "Dingling", "Dongsi", "Guanyuan", "Gucheng",
-    "Huairou", "Nongzhanguan", "Shunyi", "Tiantan", "Wanliu", "Wanshouxigong",
-]  # fmt: skip
-ESTACIONES_DEL_ANO = ["invierno", "primavera", "verano", "otono"]
+# Estación del año por mes: única definición. La lista de estaciones sale de aquí.
+ESTACION_DEL_ANO = {
+    12: "invierno", 1: "invierno", 2: "invierno",
+    3: "primavera", 4: "primavera", 5: "primavera",
+    6: "verano", 7: "verano", 8: "verano",
+    9: "otono", 10: "otono", 11: "otono",
+}  # fmt: skip
+ESTACIONES_DEL_ANO = list(dict.fromkeys(ESTACION_DEL_ANO.values()))
