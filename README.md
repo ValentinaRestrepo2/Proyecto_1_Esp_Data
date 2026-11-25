@@ -1,6 +1,6 @@
 # Predicción de días con mala calidad del aire en Beijing
 
-Proyecto final de MLOps (Universidad de Medellín). Predice, para cada estación de monitoreo, si **mañana el promedio de PM2.5 superará 75 µg/m³**, con datos horarios reales de 12 estaciones de Beijing (2013-2017).
+Proyecto 1 (Universidad de Medellín). El objetivo es crear un predictor de días con mala calidad del aire en Beijing: para cada estación de monitoreo, predice si **mañana el promedio de PM2.5 superará 75 µg/m³**, con datos horarios reales de 12 estaciones (2013-2017).
 
 El foco del proyecto es el **ciclo de vida** (datos validados, split sin fuga, reproducibilidad), no la calidad del modelo.
 
@@ -12,6 +12,28 @@ El foco del proyecto es el **ciclo de vida** (datos validados, split sin fuga, r
 - **Métrica principal:** sensibilidad (no avisar un día malo es el error más costoso), con precisión mínima, F1 y PR-AUC de apoyo.
 - **Línea base:** "mañana = hoy". Sensibilidad de **0,64** en validación y **0,59** en producción simulada. Es el número a superar.
 - **Datos:** [Beijing Multi-Site Air Quality](https://archive.ics.uci.edu/dataset/501) (UCI), licencia CC BY 4.0. Detalles en [`docs/dataset-card.md`](docs/dataset-card.md).
+
+## Objetivo de análisis (CRISP-DM, fase 1)
+
+| Campo | Contenido |
+|---|---|
+| **Problema de negocio** | En Beijing hay días en que la contaminación por PM2.5 es dañina para la salud, y la población se entera cuando ya está expuesta. No hay un aviso anticipado por estación que permita prepararse el día anterior. |
+| **Pregunta de negocio** | *"Con lo que mide hoy cada estación, ¿puedo saber si mañana el aire será malo, para avisar a tiempo y que la gente reduzca su exposición?"* |
+| **Objetivo de análisis** | Construir un modelo que prediga, para cada estación, si mañana el PM2.5 promedio superará 75 µg/m³, porque a partir de ese nivel la contaminación es perjudicial para la salud según el límite diario del estándar chino GB 3095-2012 (nivel II) y la meta intermedia 1 de la guía de calidad del aire de la OMS (2021). |
+| **Criterio de éxito analítico** | Superar la sensibilidad de la línea base "mañana = hoy", tanto en validación (2015) como en producción simulada (2016-01 a 2017-02). |
+| **Criterio de éxito de negocio** | Es exitoso si predice los días malos sin generar falsas alarmas. |
+| **Riesgos** | 1) **El modelo no supera la línea base:** no predice mejor que suponer que mañana será igual que hoy.<br>2) **Sobreajuste:** el modelo memoriza los patrones de los años de entrenamiento y no predice bien días nuevos.<br>3) **Fuga de datos:** el modelo usa información del futuro al entrenar y sus métricas parecen mejores de lo que son.<br>4) **Pérdida de rendimiento con el tiempo:** la contaminación y el clima cambian, y el modelo deja de superar la línea base en los datos recientes.<br>5) **Rendimiento desigual por estación:** el modelo funciona bien en promedio, pero en algunas estaciones predice peor que la línea base.<br>6) **Datos erróneos o insuficientes:** fallas del sensor (valores tope, huecos largos) impiden construir una tabla confiable para entrenar.<br>7) **La fuente cambia o desaparece:** UCI actualiza o retira el archivo y no hay datos para entrenar.<br>8) **Versiones de librerías incompatibles:** una actualización rompe el proyecto y no se puede ejecutar. |
+
+**Planes de mitigación**
+
+1. **El modelo no supera la línea base:** se compara siempre contra "mañana = hoy" con la misma métrica (sensibilidad) y en las mismas particiones.
+2. **Sobreajuste:** el modelo se evalúa en dos periodos que nunca vio al entrenar (validación 2015 y producción simulada 2016-2017).
+3. **Fuga de datos:** split temporal con fechas fijas, preprocesamiento ajustado solo con train y pruebas que verifican que el modelo no usa datos de mañana.
+4. **Pérdida de rendimiento con el tiempo:** el modelo se evalúa también en producción simulada (2016-2017), un periodo posterior a la validación, para medir cuánto cae el rendimiento con el tiempo.
+5. **Rendimiento desigual por estación:** métricas reportadas por estación, no solo el promedio.
+6. **Datos erróneos o insuficientes:** contrato de datos con rangos y tolerancias que detiene el proceso si no se cumple; un día solo se usa si tiene 18 horas válidas o más.
+7. **La fuente cambia o desaparece:** hash SHA-256 del archivo original, que hace fallar la descarga si el archivo cambia.
+8. **Versiones de librerías incompatibles:** versiones fijas en `uv.lock`, Python 3.12 y `pandas<3`; el CI corre las pruebas en cada cambio y verifica que `uv.lock` coincida con `pyproject.toml`.
 
 ## Resultados
 
